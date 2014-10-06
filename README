@@ -3,6 +3,8 @@ This is the Programming Contest Jury System "DOMjudge" version 4.1.0DEV
 DOMjudge is a system for running a programming contest, like the
 ACM ICPC regional and world championship programming contests.
 
+This fork has been modified by Study Assocation GEWIS to run as an
+online judge.
 
 Documentation
 -------------
