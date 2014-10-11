@@ -24,10 +24,25 @@ class php {
 
 		'/etc/php5/fpm/pool.d':
 			ensure => directory,
-			before => File ['/etc/php5/fpm/pool.d/vagrant.conf'];
+			before => [File['/etc/php5/fpm/pool.d/domjudge.conf'],File['/etc/php5/fpm/pool.d/phpmyadmin.conf']];
 
-		'/etc/php5/fpm/pool.d/vagrant.conf':
-			source => 'puppet:///modules/php/fpm-vagrant.conf',
+		'/etc/php5/fpm/conf.d':
+			ensure => directory,
+			before => [File['/etc/php5/fpm/conf.d/20-mcrypt.ini']];
+
+		'/etc/php5/fpm/conf.d/20-mcrypt.ini':
+			ensure => symlink,
+			target => '../../mods-available/mcrypt.ini',
+			require => Package['php5-fpm'],
+			notify => Service['php5-fpm'];
+
+		'/etc/php5/fpm/pool.d/domjudge.conf':
+			source => 'puppet:///modules/php/fpm-domjudge.conf',
+			require => Package['php5-fpm'],
+			notify => Service['php5-fpm'];
+
+		'/etc/php5/fpm/pool.d/phpmyadmin.conf':
+			source => 'puppet:///modules/php/fpm-phpmyadmin.conf',
 			require => Package['php5-fpm'],
 			notify => Service['php5-fpm'];
 

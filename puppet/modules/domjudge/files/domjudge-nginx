@@ -1,5 +1,9 @@
 upstream domjudge {
-	server unix:/tmp/php-fpm-vagrant.socket;
+	server unix:/tmp/php-fpm-domjudge.socket;
+}
+
+upstream phpmyadmin {
+	server unix:/tmp/php-fpm-phpmyadmin.socket;
 }
 
 server {
@@ -29,17 +33,27 @@ server {
 		fastcgi_pass domjudge;
 	}
 
-	location ~ ^/phpmyadmin/(.+?\.php)(/.*)?$ {
-		include fastcgi_params;
-		fastcgi_param SCRIPT_FILENAME /usr/share/phpmyadmin$1;
-		fastcgi_param PATH_INFO $2;
-		fastcgi_pass domjudge;
-	}
-
 	location ~ ^(.+?\.php)(/.*)?$ {
 		include fastcgi_params;
 		fastcgi_param SCRIPT_FILENAME $document_root$1;
 		fastcgi_param PATH_INFO $2;
 		fastcgi_pass domjudge;
+	}
+
+	# PHPMyAdmin
+	location /phpmyadmin {
+		root /usr/share/;
+		index index.php index.html index.htm;
+		location ~ ^/phpmyadmin/(.+\.php)$ {
+			try_files $uri =404;
+			root /usr/share/;
+			fastcgi_pass phpmyadmin;
+			fastcgi_index index.php;
+			fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+			include /etc/nginx/fastcgi_params;
+		}
+		location ~* ^/phpmyadmin/(.+\.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
+			root /usr/share/;
+		}
 	}
 }
