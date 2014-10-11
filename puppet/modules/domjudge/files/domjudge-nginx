@@ -1,0 +1,45 @@
+upstream domjudge {
+	server unix:/tmp/php-fpm-vagrant.socket;
+}
+
+server {
+	listen 80;
+	listen [::]:80;
+
+	server_name _default_;
+
+	root /vagrant/www/;
+
+	client_max_body_size 256M; # set max upload size
+
+	index index.php;
+
+	location / {
+		try_files $uri $uri/ index.php;
+	}
+
+	location ~ ^/api/(.+)$ {
+		include fastcgi_params;
+		fastcgi_param SCRIPT_FILENAME $document_root/api/index.php;
+		set $path_info $1;
+		if ($path_info = index.php) {
+			set $path_info "";
+		}
+		fastcgi_param PATH_INFO $path_info;
+		fastcgi_pass domjudge;
+	}
+
+	location ~ ^/phpmyadmin/(.+?\.php)(/.*)?$ {
+		include fastcgi_params;
+		fastcgi_param SCRIPT_FILENAME /usr/share/phpmyadmin$1;
+		fastcgi_param PATH_INFO $2;
+		fastcgi_pass domjudge;
+	}
+
+	location ~ ^(.+?\.php)(/.*)?$ {
+		include fastcgi_params;
+		fastcgi_param SCRIPT_FILENAME $document_root$1;
+		fastcgi_param PATH_INFO $2;
+		fastcgi_pass domjudge;
+	}
+}

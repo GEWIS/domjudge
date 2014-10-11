@@ -1,0 +1,7 @@
+#!/bin/bash
+
+if [[ ! -d /cgroup/cpuset/domjudge ]]; then
+	sudo /vagrant/misc-tools/create_cgroups
+fi
+
+/vagrant/judge/judgedaemon

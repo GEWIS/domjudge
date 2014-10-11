@@ -1,0 +1,11 @@
+[mysqld]
+innodb_buffer_pool_size=1024M
+innodb_file_per_table
+innodb_open_files=750
+key_buffer=384M
+table_cache=512
+thread_concurrency=8
+tmp_table_size=2048M
+max_heap_table_size=2048M
+max_connections=1000
+max_allowed_packet=64M
