@@ -30,19 +30,20 @@ require(LIBDIR . '/init.php');
 function usage()
 {
 	echo "Usage: " . SCRIPT_ID . " [OPTION]... <resultfile>\n" .
-	    "Replay a previous contest in the active one. Recorded submissions are read\n" .
-	    "from <resultfile>. Each line in this file must describe a submission with\n" .
-	    "tab separated entries: team, problem ID, time (in contest minutes), result.\n\n" .
-	    "  -f       automatically verify simulated submissions (useful when the\n" .
-	    "             configuration option VERIFICATION_REQUIRED is enabled\n" .
-	    "  -r       remove simulation generated data and exit\n" .
-	    "  -v       set verbosity to LEVEL (syslog levels)\n" .
-	    "  -h       display this help and exit\n" .
-	    "  -V       output version information and exit\n\n";
+	     "Replay a previous contest in the active one. Recorded submissions are read\n" .
+	     "from <resultfile>. Each line in this file must describe a submission with\n" .
+	     "tab separated entries: team, problem ID, time (in contest minutes), result.\n\n" .
+	     "  -c cid   contest ID to use\n" .
+	     "  -f       automatically verify simulated submissions (useful when the\n" .
+	     "             configuration option VERIFICATION_REQUIRED is enabled\n" .
+	     "  -r       remove simulation generated data and exit\n" .
+	     "  -v       set verbosity to LEVEL (syslog levels)\n" .
+	     "  -h       display this help and exit\n" .
+	     "  -V       output version information and exit\n\n";
 	exit;
 }
 
-$options = getopt("frv:hV");
+$options = getopt("frv:c:hV");
 // With PHP version >= 5.3 we can also use long options.
 // FIXME: getopt doesn't return FALSE on parse failure as documented!
 if ( $options===FALSE ) {
@@ -55,7 +56,8 @@ if ( isset($options['r']) ) $options['remove']  = $options['r'];
 if ( isset($options['v']) ) $options['verbose'] = $options['v'];
 
 if ( isset($options['V']) ) version();
-if ( isset($options['h']) ) usage();
+if ( isset($options['h']) || !isset($options['c']) ) usage();
+$cid = $options['c'];
 
 setup_database_connection();
 
@@ -101,8 +103,11 @@ $fprob = 1;
 $ftime = 2;
 $fresult = 3;
 
-$cdata = getCurContest(TRUE);
-$cid = $cdata['cid'];
+$cdatas = getCurContests(TRUE);
+if ( !isset($cdatas[$cid]) ) {
+	error("Contest c${cid} does not exist");
+}
+$cdata = $cdatas[$cid];
 
 // Create team IDs:
 $teamids = array();
@@ -173,7 +178,11 @@ while ( $cdata['cid']==$cid && difftime(now(),$cdata['endtime'])<0 ) { // bug!
 	}
 
 	sleep($waittime);
-	$cdata = getCurContest(TRUE);
+	$cdatas = getCurContests(TRUE);
+	if ( !isset($cdatas[$cid]) ) {
+		error("Contest c${cid} does not exist");
+	}
+	$cdata = $cdatas[$cid];
 }
 
 logmsg(LOG_NOTICE, "contest finished, exiting.");
