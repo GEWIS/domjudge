@@ -36,7 +36,8 @@ class domjudgepackages {
 		'libmagic-dev',
 		'flexc++',
 		'bisonc++',
-		'git'
+		'git',
+		'automake'
 		]:
 		ensure => present;
 	}

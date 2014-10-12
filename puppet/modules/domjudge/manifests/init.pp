@@ -12,7 +12,7 @@ class domjudge {
 		'install domjudge':
 			cwd     => '/vagrant',
 			command => 'make maintainer-install',
-			path    => ['/bin', '/usr/bin'],
+			path    => ['/usr/local/sbin','/usr/local/bin','/usr/sbin','/usr/bin','/sbin','/bin'],
 			require => Exec['configure domjudge'];
 
 		'generate database passwords':
