@@ -6,7 +6,7 @@ class domjudge {
 	exec {
 		'configure domjudge':
 			cwd     => '/vagrant',
-			command => 'make maintainer-conf CONFIGURE_FLAGS="--with-domjudge-user=vagrant"',
+			command => 'make maintainer-conf CONFIGURE_FLAGS="--with-domjudge-user=vagrant --with-judgehost_logdir=/home/vagrant/domjudgedata/log --with-judgehost_rundir=/home/vagrant/domjudgedata/run --with-judgehost_tmpdir=/home/vagrant/domjudgedata/tmp --with-judgehost_judgedir=/home/vagrant/domjudgedata/judgings --with-domserver_logdir=/home/vagrant/domjudgedata/log --with-domserver_rundir=/home/vagrant/domjudgedata/run --with-domserver_tmpdir=/home/vagrant/domjudgedata/tmp --with-domserver_submitdir=/home/vagrant/domjudgedata/submissions"',
 			path    => ['/bin', '/usr/bin'];
 
 		'install domjudge':
