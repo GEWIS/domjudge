@@ -163,7 +163,7 @@ if (!function_exists('parse_ini_string')) {
  */
 function importZippedProblem($zip, $probid = NULL)
 {
-	global $DB, $teamid;
+	global $DB, $contestid;
 	$prop_file = 'domjudge-problem.ini';
 
 	$ini_keys = array('probid', 'name', 'allow_submit', 'allow_judge',
@@ -262,7 +262,7 @@ function importZippedProblem($zip, $probid = NULL)
 					break;
 				}
 			}
-			if( !empty($langid) && !empty($teamid) ) {
+			if( !empty($langid) && !empty($contestid) ) {
 				if ( !($tmpfname = tempnam(TMPDIR, "ref_solution-")) ) {
 					error("Could not create temporary file.");
 				}
