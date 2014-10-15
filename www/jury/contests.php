@@ -99,13 +99,13 @@ if ( empty($curcids) )  {
 		$hasstarted = difftime($row['starttime'], $now) <= 0;
 		$hasended = difftime($row['endtime'], $now) <= 0;
 		$hasfrozen = !empty($row['freezetime']) &&
-			     difftime($row['freezetime'], $now) <= 0;
+		             difftime($row['freezetime'], $now) <= 0;
 		$hasunfrozen = !empty($row['unfreezetime']) &&
-			       difftime($row['unfreezetime'], $now) <= 0;
+		               difftime($row['unfreezetime'], $now) <= 0;
 
 		$contestname = htmlspecialchars(sprintf('%s (c%d)',
-							$row['contestname'],
-							$row['cid']));
+		                                        $row['contestname'],
+		                                        $row['cid']));
 
 		echo "<form action=\"contests.php\" method=\"post\">\n";
 		echo addHidden('cid', $row['cid']);
@@ -165,10 +165,10 @@ echo "</fieldset>\n\n";
 
 // Get data. Starttime seems most logical sort criterion.
 $res = $DB->q('TABLE SELECT contest.*, COUNT(teamid) AS numteams
-	       FROM contest
-	       LEFT JOIN gewis_contestteam USING (cid)
-	       GROUP BY cid
-	       ORDER BY starttime DESC');
+               FROM contest
+               LEFT JOIN gewis_contestteam USING (cid)
+               GROUP BY cid
+               ORDER BY starttime DESC');
 
 if( count($res) == 0 ) {
 	echo "<p class=\"nodata\">No contests defined</p>\n\n";

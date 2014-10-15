@@ -68,9 +68,9 @@ echo addSelect('data[0][affilid]', $amap, @$row['affilid'], true);
 <tr><td>Contests:</td>
 <td><?php
 	$contests = $DB->q("TABLE SELECT contest.cid,contestname,max(gewis_contestteam.teamid=%s) AS incontest
-			FROM contest
-			LEFT JOIN gewis_contestteam ON gewis_contestteam.cid = contest.cid
-			GROUP BY contest.cid", @$row['teamid']);
+	                FROM contest
+	                LEFT JOIN gewis_contestteam ON gewis_contestteam.cid = contest.cid
+	                GROUP BY contest.cid", @$row['teamid']);
 	$i=0;
 	foreach ($contests as $contest) {
 		echo "<label>";
@@ -208,10 +208,10 @@ echo rejudgeForm('team', $id) . "\n\n";
 echo "<h3>Contests</h3>\n\n";
 
 $res = $DB->q('TABLE SELECT contest.*
-	       FROM contest
-	       INNER JOIN gewis_contestteam USING (cid)
-	       WHERE gewis_contestteam.teamid = %i
-	       ORDER BY starttime DESC', $id);
+               FROM contest
+               INNER JOIN gewis_contestteam USING (cid)
+               WHERE gewis_contestteam.teamid = %i
+               ORDER BY starttime DESC', $id);
 
 if( count($res) == 0 ) {
 	echo "<p class=\"nodata\">No contests defined</p>\n\n";

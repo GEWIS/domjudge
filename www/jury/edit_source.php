@@ -8,7 +8,7 @@
 
 require('init.php');
 
-if ( empty($contestid) || !checkrole('team') ) {
+if ( empty($teamid) || !checkrole('team') ) {
 	error("You cannot re-submit code without being a team.");
 }
 
@@ -33,7 +33,7 @@ if ( isset($_POST['origsubmitid']) ) {
 
 	$cid = $DB->q('VALUE SELECT cid FROM submission WHERE submitid = %i', $_POST['origsubmitid']);
 
-	$newid = submit_solution($contestid, $_POST['probid'], $cid, $_POST['langid'],
+	$newid = submit_solution($teamid, $_POST['probid'], $cid, $_POST['langid'],
 	                $files, $filenames, $_POST['origsubmitid']);
 
 	foreach($files as $file)
@@ -95,8 +95,8 @@ foreach($sources as $sourcedata)
 echo "</div>\n";
 
 $probs = $DB->q('KEYVALUETABLE SELECT probid, name FROM problem
-		 INNER JOIN gewis_contestproblem USING (probid) WHERE
-		 allow_submit = 1 AND gewis_contestproblem.cid = %i ORDER BY name', $submission['cid']);
+                 INNER JOIN gewis_contestproblem USING (probid) WHERE
+                 allow_submit = 1 AND gewis_contestproblem.cid = %i ORDER BY name', $submission['cid']);
 $langs = $DB->q('KEYVALUETABLE SELECT langid, name FROM language WHERE
                  allow_submit = 1 ORDER BY name');
 

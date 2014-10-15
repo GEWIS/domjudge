@@ -11,7 +11,7 @@ require('init.php');
 $cid = (int)@$_REQUEST['cid'];
 
 $contest = $DB->q('MAYBETUPLE SELECT cid, contestname
-		  FROM contest WHERE cid = %i', $cid);
+                  FROM contest WHERE cid = %i', $cid);
 
 if ( ! $contest ) error("Missing or invalid contest id");
 
@@ -21,9 +21,9 @@ function get_contestproblem_data()
 	global $DB, $data, $cid;
 
 	$data = $DB->q('KEYTABLE SELECT probid AS ARRAYKEY, shortname, name
-			FROM gewis_contestproblem
-			INNER JOIN problem USING (probid)
-			WHERE gewis_contestproblem.cid = %i ORDER BY probid', $cid);
+	                FROM gewis_contestproblem
+	                INNER JOIN problem USING (probid)
+	                WHERE gewis_contestproblem.cid = %i ORDER BY probid', $cid);
 }
 get_contestproblem_data();
 
@@ -90,10 +90,10 @@ if ( IS_ADMIN ) {
 	     addHidden('cid', $cid);
 
 	$pmap = $DB->q("KEYVALUETABLE SELECT p.probid, p.shortname
-		    FROM problem p
-		    LEFT JOIN gewis_contestproblem g ON p.probid = g.probid AND g.cid = %i
-		    WHERE g.cid IS NULL
-		    ORDER BY probid", $cid);
+                    FROM problem p
+                    LEFT JOIN gewis_contestproblem g ON p.probid = g.probid AND g.cid = %i
+                    WHERE g.cid IS NULL
+                    ORDER BY probid", $cid);
 	if (!empty($pmap)) {
 		?>
 		<h3>Add team</h3>

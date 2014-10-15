@@ -62,8 +62,8 @@ foreach($_FILES['code']['tmp_name'] as $fileid => $tmpname ) {
 /* Determine the problem */
 $probid = @$_POST['probid'];
 $prob = $DB->q('MAYBETUPLE SELECT probid, name FROM problem
-		INNER JOIN gewis_contestproblem USING (probid)
-		WHERE allow_submit = 1 AND probid = %i AND gewis_contestproblem.cid = %i',
+                INNER JOIN gewis_contestproblem USING (probid)
+                WHERE allow_submit = 1 AND probid = %i AND gewis_contestproblem.cid = %i',
                $probid, $cid);
 
 if ( ! isset($prob) ) err("Unable to find problem p$probid");
@@ -77,7 +77,7 @@ $lang = $DB->q('MAYBETUPLE SELECT langid, name FROM language
 if ( ! isset($lang) ) err("Unable to find language '$langid'");
 $langid = $lang['langid'];
 
-$sid = submit_solution($contestid, $probid, $cid, $langid, $FILEPATHS, $FILENAMES);
+$sid = submit_solution($teamid, $probid, $cid, $langid, $FILEPATHS, $FILENAMES);
 
 auditlog('submission', $sid, 'added', null, null, $cid);
 

@@ -92,7 +92,7 @@ if ( !empty($cmd) ):
 <tr><td><label for="data_0__shortname_">Shortname:</label></td><td>
 <?php echo addInput('data[0][shortname]', @$row['shortname'], 8, 10,
                     " required pattern=\"" . IDENTIFIER_CHARS . "+\"") .
-           "(alphanumerics only)"; ?></td></tr>
+                    "(alphanumerics only)"; ?></td></tr>
 
 <tr><td><label for="data_0__name_">Problem name:</label></td>
 <td><?php echo addInput('data[0][name]', @$row['name'], 30, 255, 'required')?></td></tr>
@@ -157,9 +157,9 @@ echo addSelect('data[0][special_compare]', $execmap, @$row['special_compare'], T
 <tr><td>Contests:</td>
 	<td><?php
 		$contests = $DB->q("TABLE SELECT contest.cid,contestname,max(gewis_contestproblem.probid=%s) AS incontest
-		FROM contest
-		LEFT JOIN gewis_contestproblem ON gewis_contestproblem.cid = contest.cid
-		GROUP BY contest.cid", @$row['probid']);
+                FROM contest
+                LEFT JOIN gewis_contestproblem ON gewis_contestproblem.cid = contest.cid
+                GROUP BY contest.cid", @$row['probid']);
 		$i=0;
 		foreach ($contests as $contest) {
 			echo "<label>";
@@ -201,10 +201,10 @@ endif;
 
 $data = $DB->q('TUPLE SELECT p.probid,p.cid,p.shortname,p.name,p.allow_submit,p.allow_judge,
                              p.timelimit,p.special_run,p.special_compare,p.color,
-			     p.problemtext_type, count(rank) AS ntestcases
-		FROM problem p
-		LEFT JOIN testcase USING (probid)
-		WHERE probid = %i GROUP BY probid', $id);
+                             p.problemtext_type, count(rank) AS ntestcases
+                FROM problem p
+                LEFT JOIN testcase USING (probid)
+                WHERE probid = %i GROUP BY probid', $id);
 
 if ( ! $data ) error("Missing or invalid problem id");
 
@@ -279,10 +279,10 @@ if ( IS_ADMIN ) {
 echo "<h3>Contests</h3>\n\n";
 
 $res = $DB->q('TABLE SELECT contest.*
-	       FROM contest
-	       INNER JOIN gewis_contestproblem USING (cid)
-	       WHERE gewis_contestproblem.probid = %i
-	       ORDER BY starttime DESC', $id);
+               FROM contest
+               INNER JOIN gewis_contestproblem USING (cid)
+               WHERE gewis_contestproblem.probid = %i
+               ORDER BY starttime DESC', $id);
 
 if( count($res) == 0 ) {
 	echo "<p class=\"nodata\">No contests defined</p>\n\n";

@@ -51,7 +51,7 @@ function get_testcase_data()
 	                description, sample,
 	                OCTET_LENGTH(input)  AS size_input,  md5sum_input,
 	                OCTET_LENGTH(output) AS size_output, md5sum_output
-			FROM testcase WHERE probid = %i ORDER BY rank', $contestid);
+	                FROM testcase WHERE probid = %i ORDER BY rank', $contestid);
 }
 get_testcase_data();
 

@@ -38,8 +38,8 @@ if ( isset($_REQUEST['contest']) ) {
 
 require('init.php');
 $refresh = '15;url=submissions.php?' .
-	   urlencode('view[' . $view . ']') . '=' . urlencode($viewtypes[$view]) .
-	   '&contest=' . urlencode($contest);
+           urlencode('view[' . $view . ']') . '=' . urlencode($viewtypes[$view]) .
+           '&contest=' . urlencode($contest);
 $title = 'Submissions';
 
 // Set cookie of submission view type, expiry defaults to end of session.
