@@ -44,10 +44,24 @@ function editLink($table, $value, $multi = false)
  */
 function delLink($table, $field, $value)
 {
-	return "<a href=\"delete.php?table=" . urlencode($table) . "&amp;" .
-		$field . "=" . urlencode($value) ."\"><img src=\"../images/delete.png\" " .
-		"alt=\"delete\" title=\"delete this " . htmlspecialchars($table) .
-		"\" class=\"picto\" /></a>";
+	return delLinkMultiple($table, array($field), array($value));
+}
+
+/**
+ * Return a link to delete a specific data element from a given table.
+ * Takes the table, the key fields to match on and the values.
+ */
+function delLinkMultiple($table, $fields, $values, $referrer = '')
+{
+	$arguments = '';
+	foreach ($fields as $i => $field) {
+		$arguments .= '&amp;' . $field . '=' . urlencode($values[$i]);
+	}
+	return "<a href=\"delete.php?table=" . urlencode($table) . $arguments .
+	       "&amp;referrer=" . urlencode($referrer)
+	       ."\"><img src=\"../images/delete.png\" " .
+	       "alt=\"delete\" title=\"delete this " . htmlspecialchars($table) .
+	       "\" class=\"picto\" /></a>";
 }
 
 /**
@@ -161,13 +175,13 @@ if (!function_exists('parse_ini_string')) {
  * and update problem with it, or insert new problem when probid=NULL.
  * Returns probid on success, or generates error on failure.
  */
-function importZippedProblem($zip, $probid = NULL)
+function importZippedProblem($zip, $probid = NULL, $cid = -1)
 {
 	global $DB, $teamid;
 	$prop_file = 'domjudge-problem.ini';
 
-	$ini_keys = array('probid', 'name', 'allow_submit', 'allow_judge',
-	                  'timelimit', 'special_run', 'special_compare', 'color');
+	$ini_keys_problem = array('name', 'timelimit', 'special_run', 'special_compare');
+	$ini_keys_contest_problem = array('probid', 'allow_submit', 'allow_judge', 'color');
 
 	$def_timelimit = 10;
 
@@ -175,50 +189,65 @@ function importZippedProblem($zip, $probid = NULL)
 	$ini_array = parse_ini_string($zip->getFromName($prop_file));
 
 	if ( empty($ini_array) ) {
-		if ( $probid===NULL ) error("Need '" . $prop_file . "' file when adding a new problem.");
-	} else {
-		// Keep track of which contests to add this problem to
-		$cids = array();
-		if (isset($ini_array['cids']))
-		{
-			$cids = explode(',', $ini_array['cids']);
+		if ( $probid===NULL ) {
+			error("Need '" . $prop_file . "' file when adding a new problem.");
 		}
+	} else {
 		// Only preserve valid keys:
-		$ini_array = array_intersect_key($ini_array,array_flip($ini_keys));
+		$ini_array_problem = array_intersect_key($ini_array,array_flip($ini_keys_problem));
+		$ini_array_contest_problem = array_intersect_key($ini_array,array_flip($ini_keys_contest_problem));
 
 		if ( $probid===NULL ) {
-			if ( !isset($ini_array['probid']) ) {
+			if ( !isset($ini_array_contest_problem['probid']) ) {
 				error("Need 'probid' in '" . $prop_file . "' when adding a new problem.");
 			}
 			// Set sensible defaults for name and timelimit if not specified:
-			if ( !isset($ini_array['name'])      ) $ini_array['name'] = $ini_array['probid'];
-			if ( !isset($ini_array['timelimit']) ) $ini_array['timelimit'] = $def_timelimit;
+			if ( !isset($ini_array_problem['name'])      ) $ini_array_problem['name'] = $ini_array_problem['probid'];
+			if ( !isset($ini_array_problem['timelimit']) ) $ini_array_problem['timelimit'] = $def_timelimit;
 
 			// rename probid to shortname
-			$probid = $ini_array['probid'];
-			unset($ini_array['probid']);
-			$ini_array['shortname'] = $probid;
+			$shortname = $ini_array_contest_problem['probid'];
+			unset($ini_array_contest_problem['probid']);
+			$ini_array_contest_problem['shortname'] = $shortname;
 
-			$probid = $DB->q('RETURNID INSERT INTO problem (' . implode(', ',array_keys($ini_array)) .
-			       ') VALUES (%As)', $ini_array);
+			$probid = $DB->q('RETURNID INSERT INTO problem (' . implode(', ',array_keys($ini_array_problem)) .
+			       ') VALUES %As', $ini_array_problem);
 
-			foreach ($cids as $cid) {
-				$DB->q("INSERT INTO gewis_contestproblem (cid, probid) VALUES (%i, %i)", $probid, $cid);
+			if ($cid != -1) {
+				$ini_array_contest_problem['cid'] = $cid;
+				$ini_array_contest_problem['probid'] = $probid;
+				$DB->q('INSERT INTO contestproblem (' . implode(', ',array_keys($ini_array_contest_problem)) .
+				       ') VALUES %As', $ini_array_contest_problem);
 			}
 		} else {
-			// Remove keys that cannot be modified:
-			unset($ini_array['probid']);
 
-			$DB->q('UPDATE problem SET %S WHERE probid = %i', $ini_array, $probid);
+			$DB->q('UPDATE problem SET %S WHERE probid = %i', $ini_array_problem, $probid);
+
+			if ( $cid != -1 ) {
+				if ($DB->q("MAYBEVALUE SELECT probid FROM contestproblem WHERE probid = %i AND cid = %i", $probid, $cid)) {
+					// Remove keys that cannot be modified:
+					unset($ini_array_contest_problem['probid']);
+					$DB->q('UPDATE contestproblem SET %S WHERE probid = %i AND cid = %i', $ini_array_contest_problem, $probid, $cid);
+				} else {
+					$shortname = $ini_array_contest_problem['probid'];
+					unset($ini_array_contest_problem['probid']);
+					$ini_array_contest_problem['shortname'] = $shortname;
+					$ini_array_contest_problem['cid'] = $cid;
+					$ini_array_contest_problem['probid'] = $probid;
+					$DB->q('INSERT INTO contestproblem (' . implode(', ',array_keys($ini_array_contest_problem)) .
+					       ') VALUES %As', $ini_array_contest_problem);
+				}
+			}
 		}
 	}
 
 	// Add problem statement
 	foreach (array('pdf', 'html', 'txt') as $type) {
 		$text = $zip->getFromName('problem.' . $type);
-		if ($text !== FALSE) {
-			$DB->q('UPDATE problem SET problemtext = %s, problemtext_type = %s WHERE probid = %i',
-				$text, $type, $probid);
+		if ( $text!==FALSE ) {
+			$DB->q('UPDATE problem SET problemtext = %s, problemtext_type = %s
+			        WHERE probid = %i', $text, $type, $probid);
+			echo "<p>Added problem statement from: <tt>problem.$type</tt></p>\n";
 			break;
 		}
 	}
@@ -226,13 +255,15 @@ function importZippedProblem($zip, $probid = NULL)
 	// Insert/update testcases
 	$maxrank = 1 + $DB->q('VALUE SELECT max(rank) FROM testcase
 	                       WHERE probid = %i', $probid);
+	$ncases = 0;
+	echo "<ul>\n";
 	for ($j = 0; $j < $zip->numFiles; $j++) {
 		$filename = $zip->getNameIndex($j);
 		if ( ends_with($filename, ".in") ) {
 			$basename = basename($filename, ".in");
 			$fileout = $basename . ".out";
 			$testout = $zip->getFromName($fileout);
-			if ($testout !== FALSE) {
+			if ( $testout!==FALSE) {
 				$testin = $zip->getFromIndex($j);
 
 				$DB->q('INSERT INTO testcase (probid, rank,
@@ -241,16 +272,21 @@ function importZippedProblem($zip, $probid = NULL)
 				       $probid, $maxrank, md5($testin), md5($testout),
 				       $testin, $testout, $basename);
 				$maxrank++;
+				$ncases++;
+				echo "<li>Added testcase from: <tt>$basename.{in,out}</tt></li>\n";
 			}
 		}
 	}
+	echo "</ul>\n<p>Added $ncases testcase(s).</p>\n";
 
 	// submit reference solutions
-	if ( $DB->q('VALUE SELECT allow_submit FROM problem WHERE probid = %i', $probid) ) {
+	if ( $cid != -1 && $DB->q('VALUE SELECT allow_submit FROM problem INNER JOIN contestproblem using (probid) WHERE probid = %i AND cid = %i', $probid, $cid) ) {
 		// First find all submittable languages:
 		$langs = $DB->q('KEYVALUETABLE SELECT langid, extensions
  		                 FROM language WHERE allow_submit = 1');
 
+		$njurysols = 0;
+		echo "<ul>\n";
 		for ($j = 0; $j < $zip->numFiles; $j++) {
 			$filename = $zip->getNameIndex($j);
 			$filename_parts = explode(".", $filename);
@@ -268,15 +304,16 @@ function importZippedProblem($zip, $probid = NULL)
 				}
 				file_put_contents($tmpfname, $zip->getFromIndex($j));
 				if( filesize($tmpfname) <= dbconfig_get('sourcesize_limit')*1024 ) {
-					$cids = getCurContests(FALSE);
-					foreach ($cids as $cid) {
-						submit_solution($teamid, $probid, $cid, $langid,
-								array($tmpfname), array($filename));
-					}
+					submit_solution($teamid, $probid, $cid, $langid,
+							array($tmpfname), array($filename));
 				}
 				unlink($tmpfname);
 			}
 		}
+		echo "</ul>\n<p>Added $njurysols jury solution(s).</p>\n";
+	} else {
+		echo "<p>No jury solutions added: problem not submittable " .
+		    "or no team associated.</p>\n";
 	}
 
 	return $probid;

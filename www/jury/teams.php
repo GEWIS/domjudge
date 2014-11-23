@@ -10,25 +10,25 @@ require('init.php');
 $title = 'Teams';
 
 $teams = $DB->q('SELECT t.*,
-                 c.name AS catname,
-                 a.shortname AS affshortname, a.name AS affname,
-                 COUNT(cid) AS numcontests
-                 FROM team t
-                 LEFT JOIN gewis_contestteam g USING (teamid)
-                 LEFT JOIN team_category c USING (categoryid)
-                 LEFT JOIN team_affiliation a ON (t.affilid = a.affilid)
-                 GROUP BY teamid
-                 ORDER BY c.sortorder, t.name COLLATE utf8_general_ci');
+		 c.name AS catname,
+		 a.shortname AS affshortname, a.name AS affname,
+		 COUNT(cid) AS numcontests
+		 FROM team t
+		 LEFT JOIN contestteam g USING (teamid)
+		 LEFT JOIN team_category c USING (categoryid)
+		 LEFT JOIN team_affiliation a ON (t.affilid = a.affilid)
+		 GROUP BY teamid
+		 ORDER BY c.sortorder, t.name COLLATE utf8_general_ci');
 
-$nsubmits = (empty($cids) ? array() : $DB->q('KEYTABLE SELECT teamid AS ARRAYKEY, COUNT(teamid) AS cnt
-                                              FROM submission s
-                                              WHERE cid IN (%Ai) GROUP BY teamid', $cids));
+$nsubmits = $DB->q('KEYTABLE SELECT teamid AS ARRAYKEY, COUNT(teamid) AS cnt
+		    FROM submission s
+		    WHERE cid IN %Ai GROUP BY teamid', $cids);
 
-$ncorrect = (empty($cids) ? array() : $DB->q('KEYTABLE SELECT teamid AS ARRAYKEY, COUNT(teamid) AS cnt
-                                              FROM submission s
-                                              LEFT JOIN judging j USING (submitid)
-                                              WHERE j.valid = 1 AND j.result = "correct" AND s.cid IN (%Ai)
-                                              GROUP BY teamid', $cids));
+$ncorrect = $DB->q('KEYTABLE SELECT teamid AS ARRAYKEY, COUNT(teamid) AS cnt
+		    FROM submission s
+		    LEFT JOIN judging j USING (submitid)
+		    WHERE j.valid = 1 AND j.result = "correct" AND s.cid IN %Ai
+		    GROUP BY teamid', $cids);
 
 require(LIBWWWDIR . '/header.php');
 

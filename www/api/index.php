@@ -59,17 +59,18 @@ function contest()
 	$cid = $cids[0];
 	$cdata = $cdatas[$cid];
 	return array(
-		'id'       => $cid,
-		'name'     => $cdata['contestname'],
-		'start'    => $cdata['starttime'],
-		'freeze'   => $cdata['freezetime'],
-		'end'      => $cdata['endtime'],
-		'length'   => $cdata['endtime'] - $cdata['starttime'],
-		'unfreeze' => $cdata['unfreezetime'],
-		'penalty'  => 60*dbconfig_get('penalty_time', 20),
+		'id'        => $cid,
+		'shortname' => $cdata['shortname'],
+		'name'      => $cdata['contestname'],
+		'start'     => $cdata['starttime'],
+		'freeze'    => $cdata['freezetime'],
+		'end'       => $cdata['endtime'],
+		'length'    => $cdata['endtime'] - $cdata['starttime'],
+		'unfreeze'  => $cdata['unfreezetime'],
+		'penalty'   => 60*dbconfig_get('penalty_time', 20),
 		);
 }
-$doc = "Get information about the current contest: id, name, start, freeze, unfreeze, length, penalty and end.";
+$doc = "Get information about the current contest: id, shortname, name, start, freeze, unfreeze, length, penalty and end.";
 $doc .= "If more than one contest is active, return information about the first one";
 $api->provideFunction('GET', 'contest', $doc);
 
@@ -84,6 +85,7 @@ function contests()
 	return array_map(function($cdata) {
 		return array(
 			'id' => $cdata['cid'],
+			'shortname' => $cdata['shortname'],
 			'name' => $cdata['contestname'],
 			'start' => $cdata['starttime'],
 			'freeze' => $cdata['freezetime'],
@@ -94,7 +96,7 @@ function contests()
 		);
 	}, $cdatas);
 }
-$doc = "Get information about all the current contests: id, name, start, freeze, unfreeze, length, penalty and end.";
+$doc = "Get information about all the current contests: id, shortname, name, start, freeze, unfreeze, length, penalty and end.";
 $api->provideFunction('GET', 'contests', $doc);
 
 /**
@@ -129,8 +131,8 @@ function problems($args)
 	checkargs($args, array('cid'));
 
 	$q = $DB->q('SELECT probid AS id, shortname, name, color FROM problem
-		     INNER JOIN gewis_contestproblem USING (probid)
-		     WHERE gewis_contestproblem.cid = %i AND allow_submit = 1 ORDER BY probid', $args['cid']);
+		     INNER JOIN contestproblem USING (probid)
+		     WHERE cid = %i AND allow_submit = 1 ORDER BY probid', $args['cid']);
 	return $q->gettable();
 }
 $doc = "Get a list of problems in a contest, with for each problem: id, shortname, name and color.";
@@ -216,8 +218,9 @@ function judgings_POST($args)
 	                    FROM submission s
 	                    LEFT JOIN team t ON (s.teamid = t.teamid)
 	                    LEFT JOIN problem p USING (probid) LEFT JOIN language l USING (langid)
-			    WHERE judgehost IS NULL AND s.cid IN (%Ai)
-			    AND l.allow_judge = 1 AND p.allow_judge = 1 AND valid = 1
+			    LEFT JOIN contestproblem cp USING (probid, cid)
+			    WHERE judgehost IS NULL AND s.cid IN %Ai
+			    AND l.allow_judge = 1 AND cp.allow_judge = 1 AND valid = 1
 	                    ORDER BY judging_last_started ASC, submittime ASC, submitid ASC
 	                    LIMIT 1',
 			    $cids);
@@ -456,6 +459,7 @@ function config($args)
 $doc = 'Get configuration variables.';
 $args = array('name' => 'Search only a single config variable.');
 $exArgs = array(array('name' => 'sourcesize_limit'));
+$roles = array('jury','judgehost');
 $api->provideFunction('GET', 'config', $doc, $args, $exArgs);
 
 /**
@@ -512,7 +516,6 @@ function submissions($args)
 			'problem'   => $row['probid'],
 			'language'  => $row['langid'],
 			'time'      => $row['submittime'],
-			'valid'     => (bool)$row['valid'],
 			);
 	}
 	return $res;
@@ -522,7 +525,7 @@ $args = array('cid' => 'Contest ID. If not provided, get submissions of all acti
               'id' => 'Search only a certain ID',
               'fromid' => 'Search from a certain ID',
               'limit' => 'Get only the first N submissions');
-$doc = 'Get a list of all submissions. Should we give away all info about submissions? Or is there something we would like to hide, for example language?';
+$doc = 'Get a list of all valid submissions.';
 $exArgs = array(array('fromid' => 100, 'limit' => 10), array('language' => 'cpp'));
 $api->provideFunction('GET', 'submissions', $doc, $args, $exArgs);
 
@@ -534,18 +537,21 @@ function submissions_POST($args)
 	global $userdata, $DB, $api;
 	checkargs($args, array('shortname','langid'));
 	checkargs($userdata, array('teamid'));
-	$contests = getCurContests(TRUE, $userdata['teamid']);
-	if ( !isset($args['cid']) && count($contests) == 1 ) {
-		$cid = key($contests);
-	} elseif ( isset($args['cid']) && isset($contests[$args['cid']]) ) {
-		$cid = $args['cid'];
+	$contests = getCurContests(TRUE, $userdata['teamid'], false, 'shortname');
+	$contest_shortname = null;
+
+	if ( !isset($args['contest']) && count($contests) == 1 ) {
+		$contest_shortname = key($contests);
+	} elseif ( isset($args['contest']) && isset($contests[$args['contest']]) ) {
+		$contest_shortname = $args['contest'];
 	} else {
-		$api->createError("Can not find that contest or you are not part of it");
+		$api->createError("Can not find that contest, or you are not part of it, or multiple active contests found");
 	}
+	$cid = $contests[$contest_shortname]['cid'];
 
 	$probid = $DB->q("MAYBEVALUE SELECT probid FROM problem
-			  INNER JOIN gewis_contestproblem USING (probid)
-			  WHERE shortname = %s AND gewis_contestproblem.cid = %i AND allow_submit = 1",
+			  INNER JOIN contestproblem USING (probid)
+			  WHERE shortname = %s AND cid = %i AND allow_submit = 1",
 	                  $args['shortname'], $cid);
 	if ( empty($probid ) ) {
 		error("Problem " . $args['shortname'] . " not found or or not submittable");
@@ -571,7 +577,7 @@ function submissions_POST($args)
 $args = array('code[]' => 'Array of source files to submit',
               'shortname' => 'Problem shortname',
 	      'langid' => 'Language ID',
-	      'cid' => 'Contest ID. Required if more than one contest is active');
+	      'contest' => 'Contest short name. Required if more than one contest is active');
 $doc = 'Post a new submission. You need to be authenticated with a team role. Returns the submission id. This is used by the submit client.
 
 A trivial command line submisson using the curl binary could look like this:
@@ -626,7 +632,7 @@ function testcases($args)
 
 	$judging_runs = $DB->q("COLUMN SELECT testcaseid FROM judging_run
 	                        WHERE judgingid = %i", $args['judgingid']);
-	$sqlextra = count($judging_runs) ? "AND testcaseid NOT IN (%Ai)" : "%_";
+	$sqlextra = count($judging_runs) ? "AND testcaseid NOT IN %Ai" : "%_";
 	$testcase = $DB->q("MAYBETUPLE SELECT testcaseid, rank, probid, md5sum_input, md5sum_output
 	                    FROM testcase WHERE probid = %i $sqlextra ORDER BY rank LIMIT 1",
 	                   $row['probid'], $judging_runs);
@@ -709,9 +715,10 @@ function queue($args)
 	$submitids = $DB->q('SELECT submitid
 			     FROM submission s
 			     LEFT JOIN team t ON (s.teamid = t.teamid)
-	                     LEFT JOIN problem p USING (probid) LEFT JOIN language l USING (langid)
-			     WHERE judgehost IS NULL AND s.cid IN (%Ai)
-			     AND l.allow_judge = 1 AND p.allow_judge = 1 AND valid = 1
+			     LEFT JOIN problem p USING (probid) LEFT JOIN language l USING (langid)
+			     LEFT JOIN contestproblem cp USING (probid, cid)
+			     WHERE judgehost IS NULL AND s.cid IN %Ai
+			     AND l.allow_judge = 1 AND cp.allow_judge = 1 AND valid = 1
 			     ORDER BY judging_last_started ASC, submittime ASC, submitid ASC'
 			     . ($hasLimit ? ' LIMIT %i' : ' %_'),
 			     $cids,
@@ -842,7 +849,7 @@ function clarifications($args)
 
 	// Find public clarifications, maybe later also provide more info for jury
 	$query = 'SELECT clarid, submittime, probid, body FROM clarification
-		  WHERE cid IN (%Ai) AND sender IS NULL AND recipient IS NULL';
+		  WHERE cid IN %Ai AND sender IS NULL AND recipient IS NULL';
 
 	$byProblem = array_key_exists('problem', $args);
 	$query .= ($byProblem ? ' AND probid = %i' : ' AND TRUE %_');

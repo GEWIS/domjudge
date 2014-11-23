@@ -73,7 +73,7 @@ function putSubmissions($cdatas, $restrictions, $limit = 0, $highlight = null)
 		if ( $restrictions['verified'] ) {
 			$verifyclause = '(j.verified = 1) ';
 		} else {
-			$verifyclause = '(j.verified = 0 OR s.judgehost IS NULL) ';
+			$verifyclause = '(j.verified = 0 OR (j.verified IS NULL AND s.judgehost IS NULL)) ';
 		}
 	}
 	if ( isset($restrictions['judged']) ) {
@@ -86,38 +86,35 @@ function putSubmissions($cdatas, $restrictions, $limit = 0, $highlight = null)
 
 	$sqlbody =
 		'FROM submission s
-		 LEFT JOIN team          t  USING (teamid)
-		 LEFT JOIN problem       p  USING (probid)
-		 LEFT JOIN language      l  USING (langid)
-		 LEFT JOIN judging       j  ON (s.submitid = j.submitid AND j.valid=1)
-		 WHERE s.cid IN (%Ai) ' .
+		 LEFT JOIN team           t  USING (teamid)
+		 LEFT JOIN problem        p  USING (probid)
+		 LEFT JOIN contestproblem cp USING (probid, cid)
+		 LEFT JOIN language       l  USING (langid)
+		 LEFT JOIN judging        j  ON (s.submitid = j.submitid AND j.valid=1)
+		 WHERE s.cid IN %Ai ' .
 	    (isset($restrictions['teamid'])    ? 'AND s.teamid = %i '    : '%_') .
 	    (isset($restrictions['categoryid'])? 'AND t.categoryid = %i ': '%_') .
 	    (isset($restrictions['probid'])    ? 'AND s.probid = %i '    : '%_') .
 	    (isset($restrictions['langid'])    ? 'AND s.langid = %s '    : '%_') .
 	    (isset($restrictions['judgehost']) ? 'AND s.judgehost = %s ' : '%_') ;
 
-	if ( empty($cids) ) {
-		$res = null;
-	} else {
-		$res = $DB->q('SELECT s.submitid, s.teamid, s.probid, s.langid, s.cid,
-		              s.submittime, s.judgehost, s.valid, t.name AS teamname,
-		              p.shortname, p.name AS probname, l.name AS langname,
-		              j.result, j.judgehost, j.verified, j.jury_member, j.seen ' .
-		              $sqlbody .
-		              (isset($restrictions['verified']) ?
-		              'AND ' . $verifyclause : '') .
-		              (isset($restrictions['judged']) ?
-		              'AND ' . $judgedclause : '') .
-		              'ORDER BY s.submittime DESC, s.submitid DESC ' .
-		              ($limit > 0 ? 'LIMIT 0, %i' : '%_'), $cids,
-		              @$restrictions['teamid'], @$restrictions['categoryid'],
-		              @$restrictions['probid'], @$restrictions['langid'],
-		              @$restrictions['judgehost'], $limit);
-	}
+	$res = $DB->q('SELECT s.submitid, s.teamid, s.probid, s.langid, s.cid,
+	              s.submittime, s.judgehost, s.valid, t.name AS teamname,
+		      cp.shortname, p.name AS probname, l.name AS langname,
+	              j.result, j.judgehost, j.verified, j.jury_member, j.seen ' .
+	              $sqlbody .
+	              (isset($restrictions['verified']) ?
+	              'AND ' . $verifyclause : '') .
+	              (isset($restrictions['judged']) ?
+	              'AND ' . $judgedclause : '') .
+	              'ORDER BY s.submittime DESC, s.submitid DESC ' .
+	              ($limit > 0 ? 'LIMIT 0, %i' : '%_'), $cids,
+	              @$restrictions['teamid'], @$restrictions['categoryid'],
+	              @$restrictions['probid'], @$restrictions['langid'],
+	              @$restrictions['judgehost'], $limit);
 
 	// nothing found...
-	if( empty($cids) || $res->count() == 0 ) {
+	if( $res->count() == 0 ) {
 		echo "<p class=\"nodata\">No submissions</p>\n\n";
 		return;
 	}
@@ -261,22 +258,22 @@ function putSubmissions($cdatas, $restrictions, $limit = 0, $highlight = null)
 			                 @$restrictions['probid'], @$restrictions['langid'],
 			                 @$restrictions['judgehost']);
 			$corcnt = $DB->q('VALUE SELECT count(s.submitid) ' . $sqlbody .
-			                 ' AND j.result LIKE \'correct\'', $cids,
+					 ' AND j.result LIKE \'correct\'', $cids,
 			                 @$restrictions['teamid'], @$restrictions['categoryid'],
 			                 @$restrictions['probid'], @$restrictions['langid'],
 			                 @$restrictions['judgehost']);
 			$igncnt = $DB->q('VALUE SELECT count(s.submitid) ' . $sqlbody .
-			                 ' AND s.valid = 0', $cids,
+					 ' AND s.valid = 0', $cids,
 			                 @$restrictions['teamid'], @$restrictions['categoryid'],
 			                 @$restrictions['probid'], @$restrictions['langid'],
 			                 @$restrictions['judgehost']);
 			$vercnt = $DB->q('VALUE SELECT count(s.submitid) ' . $sqlbody .
-			                 ' AND verified = 0 AND result IS NOT NULL', $cids,
+					 ' AND verified = 0 AND result IS NOT NULL', $cids,
 			                 @$restrictions['teamid'], @$restrictions['categoryid'],
 			                 @$restrictions['probid'], @$restrictions['langid'],
 			                 @$restrictions['judgehost']);
 			$quecnt = $DB->q('VALUE SELECT count(s.submitid) ' . $sqlbody .
-			                 ' AND result IS NULL', $cids,
+					 ' AND result IS NULL', $cids,
 			                 @$restrictions['teamid'], @$restrictions['categoryid'],
 			                 @$restrictions['probid'], @$restrictions['langid'],
 			                 @$restrictions['judgehost']);
@@ -381,7 +378,7 @@ function putClock() {
 	if ( count($cdatas) > 1 ) {
 		echo "<div id=\"selectcontest\">\n";
 		echo addForm('change_contest.php', 'get', 'selectcontestform');
-		$contests = array_map(function($c) { return 'c' . $c['cid'] . ': ' . $c['contestname']; }, $cdatas);
+		$contests = array_map(function($c) { return $c['shortname']; }, $cdatas);
 		echo 'Selected contest: ' . addSelect('cid', $contests, $cid, true);
 		echo addEndForm();
 		echo "<script type=\"text/javascript\">
@@ -471,8 +468,10 @@ function putProblemText($probid)
 	global $DB, $cdata;
 
 	$prob = $DB->q("MAYBETUPLE SELECT cid, shortname, problemtext, problemtext_type
-	                FROM problem WHERE OCTET_LENGTH(problemtext) > 0
-	                AND probid = %i", $probid);
+			FROM problem INNER JOIN contestproblem USING (probid)
+			WHERE OCTET_LENGTH(problemtext) > 0
+			AND probid = %i
+			AND cid = %i", $probid, $cdata['cid']);
 
 	if ( empty($prob) ||
 	     !(IS_JURY ||
@@ -521,9 +520,9 @@ function putProblemTextList()
 	} else {
 
 		// otherwise, display list
-		$res = $DB->q('SELECT p.probid,p.shortname,p.name,p.color,p.problemtext_type
-			       FROM problem p INNER JOIN gewis_contestproblem USING (probid) WHERE gewis_contestproblem.cid = %i AND allow_submit = 1 AND
-		               problemtext_type IS NOT NULL ORDER BY p.shortname', $cid);
+		$res = $DB->q('SELECT probid,shortname,name,color,problemtext_type
+			       FROM problem INNER JOIN contestproblem USING (probid) WHERE cid = %i AND allow_submit = 1 AND
+			       problemtext_type IS NOT NULL ORDER BY shortname', $cid);
 
 		if ( $res->count() > 0 ) {
 			echo "<ul>\n";
@@ -548,9 +547,9 @@ function have_problemtexts()
 {
 	global $DB, $cid;
 	return $DB->q('VALUE SELECT COUNT(*) FROM problem
-	               INNER JOIN gewis_contestproblem USING (probid)
-	               WHERE problemtext_type IS NOT NULL
-	               AND gewis_contestproblem.cid = %i', $cid) > 0;
+		       INNER JOIN contestproblem USING (probid)
+		       WHERE problemtext_type IS NOT NULL
+		       AND cid = %i', $cid) > 0;
 }
 
 /**

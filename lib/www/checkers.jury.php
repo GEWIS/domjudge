@@ -62,7 +62,7 @@ function check_problem($data, $keydata = null)
 			(int)$data['timelimit'] != $data['timelimit'] ) {
 		ch_error("Timelimit is not a valid positive integer");
 	}
-	if ( ! preg_match ( ID_REGEX, $data['shortname'] ) ) {
+	if ( isset($data['shortname']) && ! preg_match ( ID_REGEX, $data['shortname'] ) ) {
 		ch_error("Problem shortname may only contain characters " . IDENTIFIER_CHARS . ".");
 	}
 
@@ -192,6 +192,10 @@ function check_relative_time($time, $starttime, $field)
 
 function check_contest($data, $keydata = null)
 {
+	if ( isset($data['shortname']) && ! preg_match ( ID_REGEX, $data['shortname'] ) ) {
+		ch_error("Contest shortname may only contain characters " . IDENTIFIER_CHARS . ".");
+	}
+
 	// are these dates valid?
 	foreach ( array('starttime','endtime','freezetime',
 			'unfreezetime','activatetime','deactivatetime') as $f ) {

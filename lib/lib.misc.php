@@ -38,10 +38,12 @@ function getFileContents($filename, $sizelimit = true) {
  * Will return all the contests that are currently active
  * When fulldata is true, returns the total row as an array
  * instead of just the ID (array indices will be contest ID's then).
- * If $onlyofteam is not null, only show contests that team is part of
+ * If $onlyofteam is not null, only show contests that team is part of. If it is -1, only show
+ * publicly visible contests
  * If $alsofuture is true, also show the contests that start in the future
+ * The results will have the value of field $key in the database as key
  */
-function getCurContests($fulldata = FALSE, $onlyofteam = null, $alsofuture = false) {
+function getCurContests($fulldata = FALSE, $onlyofteam = null, $alsofuture = false, $key = 'cid') {
 
 	global $DB;
 	if ( $alsofuture ) {
@@ -49,19 +51,25 @@ function getCurContests($fulldata = FALSE, $onlyofteam = null, $alsofuture = fal
 	} else {
 		$extra = 'AND activatetime <= UNIX_TIMESTAMP()';
 	}
-	if ( $onlyofteam ) {
+	if ( $onlyofteam !== null && $onlyofteam > 0 )
+	{
 		$contests = $DB->q("SELECT * FROM contest
-	                        INNER JOIN gewis_contestteam USING (cid)
-	                        WHERE teamid = %i AND enabled = 1 ${extra}
-	                        AND deactivatetime > UNIX_TIMESTAMP()
-	                        ORDER BY activatetime", $onlyofteam);
+				INNER JOIN contestteam USING (cid)
+				WHERE teamid = %i AND enabled = 1 ${extra}
+				AND deactivatetime > UNIX_TIMESTAMP()
+				ORDER BY activatetime", $onlyofteam);
+	} elseif ($onlyofteam === -1) {
+		$contests = $DB->q("SELECT * FROM contest
+				WHERE enabled = 1 AND public = 1 ${extra}
+				AND deactivatetime > UNIX_TIMESTAMP()
+				ORDER BY activatetime");
 	} else {
 		$contests = $DB->q("SELECT * FROM contest
-	                        WHERE enabled = 1 ${extra}
-	                        AND deactivatetime > UNIX_TIMESTAMP()
-	                        ORDER BY activatetime");
+				WHERE enabled = 1 ${extra}
+				AND deactivatetime > UNIX_TIMESTAMP()
+				ORDER BY activatetime");
 	}
-	$contests = $contests->getkeytable('cid');
+	$contests = $contests->getkeytable($key);
 	if ( !$fulldata ) {
 		return array_keys($contests);
 	}
@@ -109,8 +117,8 @@ function problemVisible($probid)
 	if ( !$cdata || difftime(now(),$cdata['starttime']) < 0 ) return FALSE;
 
 	return $DB->q('MAYBETUPLE SELECT probid FROM problem
-		   INNER JOIN gewis_contestproblem USING (probid)
-		       WHERE gewis_contestproblem.cid = %i AND allow_submit = 1 AND probid = %i',
+		   INNER JOIN contestproblem USING (probid)
+		       WHERE cid = %i AND allow_submit = 1 AND probid = %i',
 	              $cdata['cid'], $probid) !== NULL;
 }
 
@@ -592,8 +600,8 @@ function submit_solution($team, $prob, $contest, $lang, $files, $filenames, $ori
 	if( ! $teamid = $DB->q('MAYBEVALUE SELECT teamid FROM team WHERE teamid = %i AND enabled = 1',$team) ) {
 		error("Team '$team' not found in database or not enabled.");
 	}
-	if( ! $probid = $DB->q('MAYBEVALUE SELECT probid FROM problem INNER JOIN gewis_contestproblem USING (probid) WHERE probid = %s
-							AND gewis_contestproblem.cid = %i AND allow_submit = "1"', $prob, $contest) ) {
+	if( ! $probid = $DB->q('MAYBEVALUE SELECT probid FROM problem INNER JOIN contestproblem USING (probid) WHERE probid = %s
+							AND cid = %i AND allow_submit = "1"', $prob, $contest) ) {
 		error("Problem p$prob not found in database or not submittable [c$contest].");
 	}
 

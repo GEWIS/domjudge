@@ -172,8 +172,8 @@ function getProblems($cdata) {
 
 	return $DB->q('KEYTABLE SELECT probid AS ARRAYKEY,
 	               probid, shortname, name, color, LENGTH(problemtext) AS hastext FROM problem
-		       INNER JOIN gewis_contestproblem USING (probid)
-		       WHERE gewis_contestproblem.cid = %i AND allow_submit = 1
+		       INNER JOIN contestproblem USING (probid)
+		       WHERE cid = %i AND allow_submit = 1
 	               ORDER BY shortname', $cdata['cid']);
 }
 
@@ -189,17 +189,17 @@ function getTeams($filter, $jury, $cdata) {
 	                 team.name, team.categoryid, team.affilid, sortorder,
 	                 country, color, team_affiliation.name AS affilname
 	                 FROM team
-			 INNER JOIN gewis_contestteam USING (teamid)
+			 INNER JOIN contestteam USING (teamid)
 	                 LEFT JOIN team_category
 	                        ON (team_category.categoryid = team.categoryid)
 	                 LEFT JOIN team_affiliation
 	                        ON (team_affiliation.affilid = team.affilid)
 			 WHERE enabled = 1 AND cid = %i' .
 	                ( $jury ? '' : ' AND visible = 1' ) .
-	                (isset($filter['affilid']) ? ' AND team.affilid IN (%As) ' : ' %_') .
-	                (isset($filter['country']) ? ' AND country IN (%As) ' : ' %_') .
-	                (isset($filter['categoryid']) ? ' AND team.categoryid IN (%As) ' : ' %_') .
-	                (isset($filter['teams']) ? ' AND teamid IN (%Ai) ' : ' %_'),
+			(isset($filter['affilid']) ? ' AND team.affilid IN %As ' : ' %_') .
+			(isset($filter['country']) ? ' AND country IN %As ' : ' %_') .
+			(isset($filter['categoryid']) ? ' AND team.categoryid IN %As ' : ' %_') .
+			(isset($filter['teams']) ? ' AND teamid IN %Ai ' : ' %_'),
 			$cdata['cid'], @$filter['affilid'], @$filter['country'], @$filter['categoryid'], @$filter['teams']);
 }
 
@@ -560,8 +560,8 @@ function putScoreBoard($cdata, $myteamid = NULL, $static = FALSE, $filter = FALS
 		$affils = $DB->q('KEYTABLE SELECT affilid AS ARRAYKEY, team_affiliation.name, country
 		                  FROM team_affiliation
 		                  LEFT JOIN team USING(affilid)
-				  INNER JOIN gewis_contestteam ON gewis_contestteam.teamid = team.teamid
-				  WHERE categoryid IN (%As) AND cid = %i GROUP BY affilid',
+				  INNER JOIN contestteam ON contestteam.teamid = team.teamid
+				  WHERE categoryid IN %As AND cid = %i GROUP BY affilid',
 				 array_keys($categids), $cdata['cid']);
 
 		$affilids  = array();
@@ -701,7 +701,7 @@ function putTeamRow($cdata, $teamids) {
 
 		// Get values for this team about problems from scoreboard cache
 		$MATRIX = array();
-		$scoredata = $DB->q("SELECT * FROM scorecache_jury WHERE cid = %i AND teamid IN (%As)", $cid, $teamids);
+		$scoredata = $DB->q("SELECT * FROM scorecache_jury WHERE cid = %i AND teamid IN %As", $cid, $teamids);
 
 		// loop all info the scoreboard cache and put it in our own datastructure
 		while ( $srow = $scoredata->next() ) {
@@ -819,7 +819,7 @@ function calcTeamRank($cdata, $teamid, $teamtotals, $jury = FALSE) {
 			                     FROM scorecache_$tblname AS sc
 			                     LEFT JOIN problem USING (probid)
 			                     WHERE sc.cid = %i AND is_correct = 1
-			                     AND allow_submit = 1 AND teamid IN (%Ai)",
+					     AND allow_submit = 1 AND teamid IN %Ai",
 			                    $cid, $tied);
 			while ( $srow = $scoredata->next() ) {
 				$teamdata[$srow['teamid']]['solve_times'][] = $srow['totaltime'];

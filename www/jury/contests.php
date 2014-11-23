@@ -33,8 +33,8 @@ if ( isset($_POST['donow']) ) {
 			$docdata[$f] = check_relative_time($docdata[$f.'_string'], $docdata['starttime'], $f);
 		}
 		$DB->q('UPDATE contest SET starttime = %s, starttime_string = %s,
-		        endtime = %s, freezetime = %s, unfreezetime = %s, activatetime = %s, deactivatetime = %s
-		        WHERE cid = %i', $docdata['starttime'], $docdata['starttime_string'],
+			endtime = %s, freezetime = %s, unfreezetime = %s, activatetime = %s, deactivatetime = %s
+			WHERE cid = %i', $docdata['starttime'], $docdata['starttime_string'],
 		       $docdata['endtime'], $docdata['freezetime'], $docdata['unfreezetime'],
 		       $docdata['activatetime'], $docdata['deactivatetime'], $docid);
 		header ("Location: ./contests.php?edited=1");
@@ -82,6 +82,7 @@ if ( empty($curcids) )  {
 		echo addHidden('cid', $row['cid']);
 		echo "<p>No active contest. Upcoming:<br/> <em>" .
 		     htmlspecialchars($row['contestname']) .
+		     ' (' . htmlspecialchars($row['shortname']) . ')' .
 		     "</em>; active from " . printtime($row['activatetime'], '%a %d %b %Y %T %Z') .
 		     "<br /><br />\n";
 		if ( IS_ADMIN ) echo addSubmit("activate now", "donow[activate]");
@@ -91,7 +92,7 @@ if ( empty($curcids) )  {
 	}
 
 } else {
-	$rows = $DB->q('TABLE SELECT * FROM contest WHERE cid IN (%Ai)', $cids);
+	$rows = $DB->q('TABLE SELECT * FROM contest WHERE cid IN %Ai', $cids);
 	echo "</legend>\n\n";
 
 	foreach ($rows as $row) {
@@ -99,13 +100,14 @@ if ( empty($curcids) )  {
 		$hasstarted = difftime($row['starttime'], $now) <= 0;
 		$hasended = difftime($row['endtime'], $now) <= 0;
 		$hasfrozen = !empty($row['freezetime']) &&
-		             difftime($row['freezetime'], $now) <= 0;
+			     difftime($row['freezetime'], $now) <= 0;
 		$hasunfrozen = !empty($row['unfreezetime']) &&
-		               difftime($row['unfreezetime'], $now) <= 0;
+			       difftime($row['unfreezetime'], $now) <= 0;
 
-		$contestname = htmlspecialchars(sprintf('%s (c%d)',
-		                                        $row['contestname'],
-		                                        $row['cid']));
+		$contestname = htmlspecialchars(sprintf('%s (%s - c%d)',
+							$row['contestname'],
+							$row['shortname'],
+							$row['cid']));
 
 		echo "<form action=\"contests.php\" method=\"post\">\n";
 		echo addHidden('cid', $row['cid']);
@@ -165,10 +167,10 @@ echo "</fieldset>\n\n";
 
 // Get data. Starttime seems most logical sort criterion.
 $res = $DB->q('TABLE SELECT contest.*, COUNT(teamid) AS numteams
-               FROM contest
-               LEFT JOIN gewis_contestteam USING (cid)
-               GROUP BY cid
-               ORDER BY starttime DESC');
+	       FROM contest
+	       LEFT JOIN contestteam USING (cid)
+	       GROUP BY cid
+	       ORDER BY starttime DESC');
 
 if( count($res) == 0 ) {
 	echo "<p class=\"nodata\">No contests defined</p>\n\n";
@@ -176,8 +178,10 @@ if( count($res) == 0 ) {
 	echo "<h3>All available contests</h3>\n\n";
 	echo "<table class=\"list sortable\">\n<thead>\n" .
 	     "<tr><th scope=\"col\" class=\"sorttable_numeric\">CID</th>";
+	echo "<th scope=\"col\">shortname</th>";
 	foreach($times as $time) echo "<th scope=\"col\">$time</th>";
 	echo "<th scope=\"col\">process<br />balloons?</th>";
+	echo "<th scope=\"col\">public?</th>";
 	echo "<th scope=\"col\" class=\"sorttable_numeric\"># teams</th>";
 	echo "<th scope=\"col\" class=\"sorttable_numeric\"># problems</th>";
 	echo "<th scope=\"col\">name</th></tr>\n</thead>\n<tbody>\n";
@@ -185,7 +189,7 @@ if( count($res) == 0 ) {
 	$iseven = false;
 	foreach($res as $row) {
 
-		$numprobs = $DB->q('VALUE SELECT COUNT(*) FROM gewis_contestproblem WHERE cid = %i', $row['cid']);
+		$numprobs = $DB->q('VALUE SELECT COUNT(*) FROM contestproblem WHERE cid = %i', $row['cid']);
 
 		$link = '<a href="contest.php?id=' . urlencode($row['cid']) . '">';
 
@@ -195,12 +199,14 @@ if( count($res) == 0 ) {
 			(in_array($row['cid'], $curcids) ? ' highlight':'') . '">' .
 			"<td class=\"tdright\">" . $link .
 			"c" . (int)$row['cid'] . "</a></td>\n";
+		echo "<td>" . $link . htmlspecialchars($row['shortname']) . "</a></td>\n";
 		foreach ($times as $time) {
 			echo "<td title=\"".printtime(@$row[$time. 'time'],'%Y-%m-%d %H:%M') . "\">" .
 			      $link . ( isset($row[$time.'time']) ?
 			      printtime($row[$time.'time']) : '-' ) . "</a></td>\n";
 		}
 		echo "<td>" . $link . ($row['process_balloons'] ? 'yes' : 'no') . "</a></td>\n";
+		echo "<td>" . $link . ($row['public'] ? 'yes' : 'no') . "</a></td>\n";
 		echo "<td>" . $link . $row['numteams'] . "</a></td>\n";
 		echo "<td>" . $link . $numprobs . "</a></td>\n";
 		echo "<td>" . $link . htmlspecialchars($row['contestname']) . "</a></td>\n";

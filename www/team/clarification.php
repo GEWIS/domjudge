@@ -33,7 +33,7 @@ if ( isset($_POST['submit']) && !empty($_POST['bodytext']) ) {
 	$newid = $DB->q('RETURNID INSERT INTO clarification
 	                 (cid, submittime, sender, probid, body)
 	                 VALUES (%i, %s, %i, %i, %s)',
-	                $cid, now(), $teamid,
+			$cid, now(), $teamid,
 	                ($_POST['problem'] == 'general' ? NULL : $_POST['problem']),
 	                $_POST['bodytext']);
 

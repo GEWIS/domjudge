@@ -56,6 +56,9 @@ curl_setopt($ch, CURLOPT_USERPWD, "$token:");
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, TRUE);
 curl_setopt($ch, CURLOPT_HTTPHEADER, array("Accept: application/json"));
 if ( isset($_REQUEST['upload']) ) {
+	if ( difftime($cdata['endtime'],now()) >= 0 ) {
+		error("Contest did not end yet. Refusing to upload standings before contest end.");
+	}
 	curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: application/xml'));
 	curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
 	$data = '<?xml version="1.0" encoding="UTF-8"?><icpc computeCitations="1" name="Upload_via_DOMjudge_' . date("c") . '">';
@@ -64,7 +67,7 @@ if ( isset($_REQUEST['upload']) ) {
 	while( $row = $teams->next() ) {
 		$totals = $DB->q("MAYBETUPLE SELECT correct, totaltime, cid
 					FROM rankcache_public
-					WHERE cid IN (%Ai)
+					WHERE cid IN %Ai
 					AND teamid = %i", getCurContests(FALSE), $row['teamid']);
 		if ( $totals === null ) {
 			$totals['correct'] = $totals['totaltime'] = 0;
@@ -113,7 +116,7 @@ $teamrole = $DB->q('VALUE SELECT roleid FROM role WHERE role=%s', 'team');
 $new_affils = array();
 $new_teams = array();
 $updated_teams = array();
-foreach ( $json['icpcExport']['contest']['group'] as $group ) {
+foreach ( $json['icpcExport']['contest']['groups']['group'] as $group ) {
 	foreach ( $group['team'] as $team ) {
 		// Note: affiliations are not updated and not deleted even if all teams are canceled
 		$affilid = $DB->q('MAYBEVALUE SELECT affilid FROM team_affiliation WHERE name=%s', $team['institutionName']);
