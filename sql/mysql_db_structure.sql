@@ -92,12 +92,45 @@ CREATE TABLE `contest` (
   `unfreezetime_string` varchar(20) DEFAULT NULL COMMENT 'Authoritative absolute or relative string representation of unfreezetrime',
   `deactivatetime_string` varchar(20) NOT NULL COMMENT 'Authoritative absolute or relative string representation of deactivatetime',
   `enabled` tinyint(1) unsigned NOT NULL DEFAULT '1' COMMENT 'Whether this contest can be active',
-  `process_balloons` tinyint(1) UNSIGNED DEFAULT 1 COMMENT 'Will balloons be processed for this contest?',
-  `public` tinyint(1) UNSIGNED DEFAULT 1 COMMENT 'Is this contest visible for public',
+  `process_balloons` tinyint(1) UNSIGNED DEFAULT '1' COMMENT 'Will balloons be processed for this contest?',
+  `public` tinyint(1) UNSIGNED DEFAULT '1' COMMENT 'Is this contest visible for the public or non-associated teams?',
   PRIMARY KEY (`cid`),
   UNIQUE KEY `shortname` (`shortname`),
   KEY `cid` (`cid`,`enabled`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Contests that will be run with this install';
+
+--
+-- Table structure for table `contestproblem`
+--
+
+CREATE TABLE `contestproblem` (
+  `cid` int(4) unsigned NOT NULL COMMENT 'Contest ID',
+  `probid` int(4) unsigned NOT NULL COMMENT 'Problem ID',
+  `shortname` varchar(255) NOT NULL COMMENT 'Unique problem ID within contest (string)',
+  `allow_submit` tinyint(1) unsigned NOT NULL DEFAULT '0' COMMENT 'Are submissions accepted for this problem?',
+  `allow_judge` tinyint(1) unsigned NOT NULL DEFAULT '1' COMMENT 'Are submissions for this problem judged?',
+  `color` varchar(25) DEFAULT NULL COMMENT 'Balloon colour to display on the scoreboard',
+  PRIMARY KEY (`cid`,`probid`),
+  UNIQUE KEY `shortname` (`cid`,`shortname`),
+  KEY `cid` (`cid`),
+  KEY `probid` (`probid`),
+  CONSTRAINT `contestproblem_ibfk_1` FOREIGN KEY (`cid`) REFERENCES `contest` (`cid`) ON DELETE CASCADE,
+  CONSTRAINT `contestproblem_ibfk_2` FOREIGN KEY (`probid`) REFERENCES `problem` (`probid`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Many-to-Many mapping of contests and problems';
+
+--
+-- Table structure for table `contestteam`
+--
+
+CREATE TABLE `contestteam` (
+  `cid` int(4) unsigned NOT NULL COMMENT 'Contest ID',
+  `teamid` int(4) unsigned NOT NULL COMMENT 'Team ID',
+  PRIMARY KEY (`teamid`,`cid`),
+  KEY `cid` (`cid`),
+  KEY `teamid` (`teamid`),
+  CONSTRAINT `contestteam_ibfk_1` FOREIGN KEY (`cid`) REFERENCES `contest` (`cid`) ON DELETE CASCADE,
+  CONSTRAINT `contestteam_ibfk_2` FOREIGN KEY (`teamid`) REFERENCES `team` (`teamid`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Many-to-Many mapping of contests and teams';
 
 --
 -- Table structure for table `event`
@@ -233,39 +266,6 @@ CREATE TABLE `problem` (
   `problemtext_type` varchar(4) DEFAULT NULL COMMENT 'File type of problem text',
   PRIMARY KEY  (`probid`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Problems the teams can submit solutions for';
-
---
--- Table structure for table `contestproblem`
---
-
-CREATE TABLE `contestproblem` (
-  `cid` int(4) UNSIGNED NOT NULL COMMENT 'Contest ID',
-  `probid` int(4) UNSIGNED NOT NULL COMMENT 'Problem ID',
-  `shortname` varchar(255) NOT NULL COMMENT 'Unique ID (string)',
-  `allow_submit` tinyint(1) unsigned NOT NULL DEFAULT '0' COMMENT 'Are submissions accepted for this problem?',
-  `allow_judge` tinyint(1) unsigned NOT NULL DEFAULT '1' COMMENT 'Are submissions for this problem judged?',
-  `color` varchar(25) DEFAULT NULL COMMENT 'Balloon colour to display on the scoreboard',
-  KEY `cid` (`cid`),
-  KEY `probid` (`probid`),
-  UNIQUE KEY `shortname` (`shortname`,`cid`),
-  PRIMARY KEY (`probid`, `cid`),
-  CONSTRAINT `contestproblem_ibfk_1` FOREIGN KEY (`cid`) REFERENCES `contest` (`cid`) ON DELETE CASCADE,
-  CONSTRAINT `contestproblem_ibfk_2` FOREIGN KEY (`probid`) REFERENCES `problem` (`probid`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Many-to-Many mapping of contests and problems';
-
---
--- Table structure for table `contestteam`
---
-
-CREATE TABLE `contestteam` (
-  `cid` int(4) UNSIGNED NOT NULL COMMENT 'Contest ID',
-  `teamid` int(4) UNSIGNED NOT NULL COMMENT 'Team ID',
-  KEY `cid` (`cid`),
-  KEY `teamid` (`teamid`),
-  PRIMARY KEY (`teamid`, `cid`),
-  CONSTRAINT `contestteam_ibfk_1` FOREIGN KEY (`cid`) REFERENCES `contest` (`cid`) ON DELETE CASCADE,
-  CONSTRAINT `contestteam_ibfk_2` FOREIGN KEY (`teamid`) REFERENCES `team` (`teamid`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Many-to-Many mapping of contests and teams';
 
 --
 -- Table structure for table `rankcache_jury`
