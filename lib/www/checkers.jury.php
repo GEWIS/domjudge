@@ -134,6 +134,9 @@ function check_problem($data, $keydata = null)
 		$data['problemtext_html'] = NULL;
 	}
 
+	unset($data['problemtext_start']);
+	unset($data['problemtext_end']);
+
 	if ( !empty($data['special_compare']) ) {
 		global $DB;
 		if ( ! $DB->q('MAYBEVALUE SELECT execid FROM executable WHERE execid = %s AND type = %s', $data['special_compare'], 'compare') ) {
