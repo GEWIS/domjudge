@@ -69,15 +69,16 @@ function check_problem($data, $keydata = null)
 	if ( !empty($_FILES['data']['name'][0]['problemtext']) ) {
 		$origname = $_FILES['data']['name'][0]['problemtext'];
 		$tempname = $_FILES['data']['tmp_name'][0]['problemtext'];
-		if ( strrpos($origname,'.')!==FALSE ) {
-			$ext = substr($origname,strrpos($origname,'.')+1);
+		if ( strrpos($origname, '.') !== FALSE ) {
+			$ext = substr($origname, strrpos($origname, '.') + 1);
 			if ( in_array($ext, array('pdf')) ) {
 				$data['problemtext_type'] = $ext;
 			}
 		}
 		// These functions only exist in PHP >= 5.3.0.
 		if ( !isset($data['problemtext_type']) &&
-		     function_exists("finfo_open") ) {
+			function_exists("finfo_open")
+		) {
 			$finfo = finfo_open(FILEINFO_MIME);
 
 			list($type) = explode('; ', finfo_file($finfo, $tempname));
@@ -85,9 +86,9 @@ function check_problem($data, $keydata = null)
 			finfo_close($finfo);
 
 			switch ( $type ) {
-			case 'application/pdf':
-				$data['problemtext_type'] = 'pdf';
-				break;
+				case 'application/pdf':
+					$data['problemtext_type'] = 'pdf';
+					break;
 			}
 		}
 
@@ -100,7 +101,8 @@ function check_problem($data, $keydata = null)
 			$input = sprintf('A=%s', $tempname);
 			$pages = sprintf('A%d-%d', $data['problemtext_start'], $data['problemtext_end']);
 			$output = sprintf('%s-cat', $tempname);
-			$cmd = sprintf('pdftk %s cat %s output %s', escapeshellarg($input), escapeshellarg($pages), escapeshellarg($output));
+			$cmd = sprintf('pdftk %s cat %s output %s', escapeshellarg($input), escapeshellarg($pages),
+				escapeshellarg($output));
 			exec($cmd);
 			$full_pdf = file_get_contents($output);
 			unlink($output);
@@ -111,7 +113,8 @@ function check_problem($data, $keydata = null)
 
 		$data['problemtext'] = $full_pdf;
 
-		$cmd = sprintf('cd /tmp && pdf2htmlEX %s %s %s', $extra, escapeshellarg($tempname), escapeshellarg(basename($tempname) . '.html'));
+		$cmd = sprintf('cd /tmp && pdf2htmlEX --zoom 2 --process-outline 0 %s %s %s', $extra, escapeshellarg($tempname),
+			escapeshellarg(basename($tempname) . '.html'));
 
 		exec($cmd);
 		$data['problemtext_html'] = file_get_contents($tempname . '.html');

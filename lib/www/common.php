@@ -464,7 +464,7 @@ function putProblemText($probid)
 {
 	global $DB, $cdata;
 
-	$prob = $DB->q("MAYBETUPLE SELECT cid, shortname, problemtext, problemtext_type
+	$prob = $DB->q("MAYBETUPLE SELECT cid, shortname, problemtext_html
 			FROM problem INNER JOIN contestproblem USING (probid)
 			WHERE OCTET_LENGTH(problemtext) > 0
 			AND probid = %i
@@ -476,28 +476,28 @@ function putProblemText($probid)
 		error("Problem p$probid not found or not available");
 	}
 
-	switch ( $prob['problemtext_type'] ) {
-	case 'pdf':
-		$mimetype = 'application/pdf';
-		break;
-	case 'html':
-		$mimetype = 'text/html';
-		break;
-	case 'txt':
-		$mimetype = 'text/plain';
-		break;
-	default:
-		error("Problem p$probid text has unknown type");
+	echo '<iframe style="position: absolute; left: 5%; width: 90%; height: 800px;" src="problemframe.php?id=' . urlencode($probid) . '"/>';
+
+	exit(0);
+}
+
+function putProblemTextFrame($probid)
+{
+	global $DB, $cdata;
+
+	$prob = $DB->q("MAYBETUPLE SELECT cid, shortname, problemtext_html
+			FROM problem INNER JOIN contestproblem USING (probid)
+			WHERE OCTET_LENGTH(problemtext) > 0
+			AND probid = %i
+			AND cid = %i", $probid, $cdata['cid']);
+
+	if ( empty($prob) ||
+		!(IS_JURY ||
+			($prob['cid']==$cdata['cid'] && difftime($cdata['starttime'],now())<=0)) ) {
+		error("Problem p$probid not found or not available");
 	}
 
-
-	$filename = "prob-$prob[shortname].$prob[problemtext_type]";
-
-	header("Content-Type: $mimetype; name=\"$filename\"");
-	header("Content-Disposition: inline; filename=\"$filename\"");
-	header("Content-Length: " . strlen($prob['problemtext']));
-
-	echo $prob['problemtext'];
+	echo $prob['problemtext_html'];
 
 	exit(0);
 }
@@ -525,9 +525,7 @@ function putProblemTextList()
 			echo "<ul>\n";
 			while($row = $res->next()) {
 				print '<li> ' .
-				      '<img src="../images/' . urlencode($row['problemtext_type']) .
-				      '.png" alt="' . htmlspecialchars($row['problemtext_type']) .
-				      '" /> <a href="problem.php?id=' . urlencode($row['probid']) . '">' .
+				      '<a href="problem.php?id=' . urlencode($row['probid']) . '">' .
 				      'Problem ' . htmlspecialchars($row['shortname']) . ': ' .
 				      htmlspecialchars($row['name']) . "</a></li>\n";
 			}

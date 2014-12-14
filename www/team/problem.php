@@ -11,7 +11,16 @@ require('init.php');
 
 $id = getRequestID();
 if ( empty($id) ) error("Missing problem id");
+$prob = $DB->q("MAYBETUPLE SELECT * FROM problem
+                INNER JOIN contestproblem USING (probid)
+                WHERE cid = %i AND probid = %i", $cid, $id);
 
-// download a given problem statement
+$title = 'Problem description - Problem ' . htmlspecialchars($prob['shortname']) . ': ' . htmlspecialchars($prob['name']);
+require(LIBWWWDIR . '/header.php');
+
+echo "<h1>" . $title . "</h1>\n\n";
+
+// Show a given problem statement
 putProblemText($id);
-exit;
+
+require(LIBWWWDIR . '/footer.php');
