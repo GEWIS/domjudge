@@ -94,6 +94,8 @@ CREATE TABLE `contest` (
   `enabled` tinyint(1) unsigned NOT NULL DEFAULT '1' COMMENT 'Whether this contest can be active',
   `process_balloons` tinyint(1) UNSIGNED DEFAULT '1' COMMENT 'Will balloons be processed for this contest?',
   `public` tinyint(1) UNSIGNED DEFAULT '1' COMMENT 'Is this contest visible for the public and non-associated teams?',
+  `scoreboardhideproblems` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'If 1, will hide problems in the scoreboard',
+  `scoreboardhidetime` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'If 1, will hide time in the scoreboard',
   PRIMARY KEY (`cid`),
   UNIQUE KEY `shortname` (`shortname`),
   KEY `cid` (`cid`,`enabled`)

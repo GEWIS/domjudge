@@ -74,6 +74,14 @@ $pattern_dateorpos = "($pattern_datetime|\+$pattern_offset)";
 <?php echo addRadioButton('data[0][public]', (!isset($row['public']) ||  $row['public']), 1)?> <label for="data_0__public_1">yes</label>
 <?php echo addRadioButton('data[0][public]', ( isset($row['public']) && !$row['public']), 0)?> <label for="data_0__public_0">no</label></td></tr>
 
+<tr><td>Hide problems on scoreboard:</td><td>
+<?php echo addRadioButton('data[0][scoreboardhideproblems]', (!isset($row['scoreboardhideproblems']) ||  $row['scoreboardhideproblems']), 1)?> <label for="data_0__scoreboardhideproblems_1">yes</label>
+<?php echo addRadioButton('data[0][scoreboardhideproblems]', ( isset($row['scoreboardhideproblems']) && !$row['scoreboardhideproblems']), 0)?> <label for="data_0__scoreboardhideproblems_0">no</label></td></tr>
+
+<tr><td>Hide time on scoreboard:</td><td>
+<?php echo addRadioButton('data[0][scoreboardhidetime]', (!isset($row['scoreboardhidetime']) ||  $row['scoreboardhidetime']), 1)?> <label for="data_0__scoreboardhidetime_1">yes</label>
+<?php echo addRadioButton('data[0][scoreboardhidetime]', ( isset($row['scoreboardhidetime']) && !$row['scoreboardhidetime']), 0)?> <label for="data_0__scoreboardhidetime_0">no</label></td></tr>
+
 <tr><td>Enabled:</td><td>
 <?php echo addRadioButton('data[0][enabled]', (!isset($row['enabled']) ||  $row['enabled']), 1)?> <label for="data_0__enabled_1">yes</label>
 <?php echo addRadioButton('data[0][enabled]', ( isset($row['enabled']) && !$row['enabled']), 0)?> <label for="data_0__enabled_0">no</label></td></tr>
@@ -252,6 +260,12 @@ echo '<tr><td>Process balloons:</td><td>' .
 echo '<tr><td>Public:</td><td>' .
      ($data['public'] ? 'yes' : 'no') .
      "</td></tr>\n";
+echo '<tr><td>Hide problems on scoreboard:</td><td>' .
+	($data['scoreboardhideproblems'] ? 'yes' : 'no') .
+	"</td></tr>\n";
+echo '<tr><td>Hide time on scoreboard:</td><td>' .
+	($data['scoreboardhidetime'] ? 'yes' : 'no') .
+	"</td></tr>\n";
 echo '<tr><td>Teams:</td><td>';
 if ( $data['public'] ) {
 	echo "<em>all teams</em>";

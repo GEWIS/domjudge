@@ -21,6 +21,10 @@ ALTER TABLE `problem`
     ADD COLUMN `source` varchar(255) COMMENT 'Source of this problem' after `name`,
     ADD COLUMN `problemtext_html` longtext COMMENT 'HTML problem text';
 
+ALTER TABLE `contest`
+    ADD COLUMN `scoreboardhideproblems` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'If 1, will hide problems in the scoreboard',
+    ADD COLUMN `scoreboardhidetime` tinyint(1) NOT NULL DEFAULT '0' COMMENT 'If 1, will hide time in the scoreboard';
+
 --
 -- Transfer data from old to new structure
 --
@@ -30,9 +34,6 @@ ALTER TABLE `problem`
 --
 -- Add/remove sample/initial contents
 --
-
-INSERT INTO `configuration` (`name`, `value`, `type`, `description`) VALUES
-    ('scoreboard_expanded', '15', 'int', 'Maximum number of problems in a scoreboard before not showing problems.');
 
 --
 -- Finally remove obsolete structures after moving data

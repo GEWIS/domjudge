@@ -40,8 +40,6 @@ function genScoreBoard($cdata, $jury = FALSE, $filter = NULL) {
 
 	$cid = $cdata['cid'];
 
-	$max_expanded = dbconfig_get('scoreboard_expanded');
-
 	// Show final scores if contest is over and unfreezetime has been
 	// reached, or if contest is over and no freezetime had been set.
 	// We can compare $now and the dbfields stringwise.
@@ -59,7 +57,6 @@ function genScoreBoard($cdata, $jury = FALSE, $filter = NULL) {
 	// get the teams, problems and categories
 	$teams = getTeams($filter, $jury, $cdata);
 	$probs = getProblems($cdata);
-	$probcount = count($probs);
 	$categs = getCategories($jury);
 
 	// initialize the arrays we'll build from the data
@@ -88,7 +85,7 @@ function genScoreBoard($cdata, $jury = FALSE, $filter = NULL) {
 
 		$penalty = calcPenaltyTime( $srow['is_correct'], $srow['submissions'] );
 
-		if ( $probcount <= $max_expanded ) {
+		if ( $cdata['scoreboardhideproblems'] != 0 ) {
 			// fill our matrix with the scores from the database
 			$MATRIX[$srow['teamid']][$srow['probid']] = array(
 				'is_correct' => (bool)$srow['is_correct'],
@@ -159,12 +156,15 @@ function genScoreBoard($cdata, $jury = FALSE, $filter = NULL) {
 		}
 	}
 
-	return array( 'matrix'     => $MATRIX,
-	              'scores'     => $SCORES,
-	              'summary'    => $SUMMARY,
-	              'teams'      => $teams,
-	              'problems'   => $probs,
-	              'categories' => $categs );
+	return array('matrix' => $MATRIX,
+	             'scores' => $SCORES,
+	             'summary' => $SUMMARY,
+	             'teams' => $teams,
+	             'problems' => $probs,
+	             'categories' => $categs,
+	             'hideproblems' => (bool)$cdata['scoreboardhideproblems'],
+	             'hidetime' => (bool)$cdata['scoreboardhidetime'],
+	);
 }
 
 /**
@@ -288,16 +288,15 @@ function renderScoreBoardTable($sdata, $myteamid = null, $static = FALSE,
 	$limitteams = null, $displayrank = TRUE, $center = FALSE, $showlegends = TRUE)
 {
 	// 'unpack' the scoreboard data:
-	$scores  = $sdata['scores'];
-	$matrix  = $sdata['matrix'];
-	$summary = $sdata['summary'];
-	$teams   = $sdata['teams'];
-	$probs   = $sdata['problems'];
-	$categs  = $sdata['categories'];
+	$scores       = $sdata['scores'];
+	$matrix       = $sdata['matrix'];
+	$summary      = $sdata['summary'];
+	$teams        = $sdata['teams'];
+	$probs        = $sdata['problems'];
+	$categs       = $sdata['categories'];
+	$hideproblems = $sdata['hideproblems'];
+	$hidetime     = $sdata['hidetime'];
 	unset($sdata);
-
-	$max_expanded = dbconfig_get('scoreboard_expanded');
-	$probcount = count($probs);
 
 	// configuration
 	$SHOW_AFFILIATIONS = dbconfig_get('show_affiliations', 1);
@@ -315,14 +314,15 @@ function renderScoreBoardTable($sdata, $myteamid = null, $static = FALSE,
 
 	// column headers
 	echo "<thead>\n";
+	$score_title = $hidetime ? '# solved' : '# solved / penalty time';
 	echo '<tr class="scoreheader">' .
 		'<th title="rank" scope="col">' . jurylink(null,'rank') . '</th>' .
 		'<th title="team name" scope="col"' .
 		( $SHOW_AFFILIATIONS ? ' colspan="2"' : '' ) .
 		'>' . jurylink(null, 'team') . '</th>' .
-		'<th title="# solved / penalty time" colspan="2" scope="col">' .
+		'<th title="' . $score_title  . '" colspan="2" scope="col">' .
 		jurylink(null, 'score') . '</th>' . "\n";
-	if ( $probcount <= $max_expanded ) {
+	if ( !$hideproblems ) {
 		foreach ( $probs as $pr ) {
 			echo '<th title="problem \'' . htmlspecialchars($pr['name']) . '\'" scope="col">';
 			$str = htmlspecialchars($pr['shortname']) .
@@ -408,11 +408,13 @@ function renderScoreBoardTable($sdata, $myteamid = null, $static = FALSE,
 			 '</span>' : '') .
 			($static ? '' : '</a>') .
 			'</td>';
+		$colspan = $hidetime ? 2 : 1;
+		$class = $hidetime ? 'scorenctt' : 'scorenc';
 		echo
-			'<td class="scorenc">' . jurylink(null,$totals['num_correct']) . '</td>' .
-			'<td class="scorett">' . jurylink(null,$totals['total_time'] ) . '</td>';
+			'<td class="' . $class . '" colspan="' . $colspan . '">' . jurylink(null,$totals['num_correct']) . '</td>' .
+			($hidetime ? '' : '<td class="scorett">' . jurylink(null,$totals['total_time'] ) . '</td>' );
 
-		if ( $probcount <= $max_expanded ) {
+		if ( !$hideproblems ) {
 			// for each problem
 			foreach ( array_keys($probs) as $prob ) {
 
@@ -452,17 +454,20 @@ function renderScoreBoardTable($sdata, $myteamid = null, $static = FALSE,
 	echo "</tbody>\n\n";
 
 	if ( empty($limitteams) ) {
+		$colspan = $hidetime ? 2 : 1;
+		$class = $hidetime ? 'scorenctt' : 'scorenc';
 		// print a summaryline
 		echo '<tbody><tr id="scoresummary" title="#submitted / #correct">' .
 			'<td title="total teams">' .
-			jurylink(null,count($matrix)) . '</td>' .
-			( $SHOW_AFFILIATIONS ? '<td class="scoreaffil" title="#affiliations / #countries">' .
-			  jurylink('team_affiliations.php',count($summary['affils']) . ' / ' .
-					   count($summary['countries'])) . '</td>' : '' ) .
-			'<td title=" ">' . jurylink(null,'Summary') . '</td>' .
-			'<td title="total solved" class="scorenc">' . jurylink(null,$summary['num_correct'])  . '</td><td title=" "></td>';
+			jurylink(null, count($matrix)) . '</td>' .
+			($SHOW_AFFILIATIONS ? '<td class="scoreaffil" title="#affiliations / #countries">' .
+				jurylink('team_affiliations.php', count($summary['affils']) . ' / ' .
+					count($summary['countries'])) . '</td>' : '') .
+			'<td title=" ">' . jurylink(null, 'Summary') . '</td>' .
+			'<td title="total solved" class="' . $class . '" colspan="' . $colspan . '">' . jurylink(null, $summary['num_correct']) . '</td>'
+			. ($hidetime ? '' : '<td title=" "></td>');
 
-		if ( $probcount <= $max_expanded ) {
+		if ( !$hideproblems ) {
 			foreach ( array_keys($probs) as $prob ) {
 				$str = $summary['problems'][$prob]['num_submissions'] . '/' .
 					$summary['problems'][$prob]['num_correct'];
