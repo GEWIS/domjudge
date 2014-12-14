@@ -8,10 +8,8 @@
 --
 
 -- @UPGRADE-CHECK@
-ALTER TABLE `problem`
-    ADD COLUMN`source` text;
-ALTER TABLE `problem`
-    DROP COLUMN `source`;
+ALTER TABLE `problem` ADD COLUMN`source` text;
+ALTER TABLE `problem` DROP COLUMN `source`;
 
 --
 -- Create additional structures
