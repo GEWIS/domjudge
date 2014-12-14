@@ -40,7 +40,7 @@ if( $res->count() == 0 ) {
 	     "<th scope=\"col\">time<br />limit</th>" .
 	     "<th scope=\"col\">test<br />cases</th>" .
 	     "<th scope=\"col\"></th>" .
-	    ( IS_ADMIN ? "<th scope=\"col\"></th><th scope=\"col\"></th>" : '' ) .
+	    ( (IS_ADMIN || IS_PROBLEM_EDITOR) ? "<th scope=\"col\"></th><th scope=\"col\"></th>" : '' ) .
 	     "</tr></thead>\n<tbody>\n";
 
 	$lastcid = -1;
@@ -68,7 +68,7 @@ if( $res->count() == 0 ) {
 		} else {
 			echo '<td></td>';
 		}
-		if ( IS_ADMIN ) {
+		if ( IS_ADMIN || IS_PROBLEM_EDITOR ) {
 			echo '<td title="export problem as zip-file">' .
 			     exportLink($row['probid']) . '</td>' .
 			     "<td class=\"editdel\">" .
@@ -80,7 +80,7 @@ if( $res->count() == 0 ) {
 	echo "</tbody>\n</table>\n\n";
 }
 
-if ( IS_ADMIN ) {
+if ( IS_ADMIN || IS_PROBLEM_EDITOR ) {
 	echo "<p>" . addLink('problem') . "</p>\n\n";
 	if ( class_exists("ZipArchive") ) {
 		$contests = $DB->q("KEYVALUETABLE SELECT cid, CONCAT('c', cid, ': ' , shortname, ' - ', contestname) FROM contest");

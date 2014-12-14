@@ -33,6 +33,12 @@ if ( checkrole('admin') ) {
 	define('IS_ADMIN', false);
 }
 
+if ( checkrole('problem_editor') ) {
+	define('IS_PROBLEM_EDITOR', true);
+} else {
+	define('IS_PROBLEM_EDITOR', false);
+}
+
 if ( !isset($REQUIRED_ROLES) ) $REQUIRED_ROLES = array('jury');
 $allowed = false;
 foreach ($REQUIRED_ROLES as $role) {

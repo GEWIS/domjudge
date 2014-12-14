@@ -68,7 +68,7 @@ if ( isset($_POST['upload']) ) {
 
 if ( !empty($cmd) ):
 
-	requireAdmin();
+	requireProblemEditor();
 
 	echo "<h2>$title</h2>\n\n";
 
@@ -236,7 +236,7 @@ echo "</table>\n" . addEndForm();
 
 echo "<br />\n" . rejudgeForm('problem', $id) . "\n\n";
 
-if ( IS_ADMIN ) {
+if ( IS_ADMIN || IS_PROBLEM_EDITOR ) {
 	echo "<p>" .
 		exportLink($id) . "\n" .
 		editLink('problem',$id) . "\n" .

@@ -105,7 +105,8 @@ INSERT INTO `role` (`roleid`, `role`, `description`) VALUES
 (5, 'print',             'print'),
 (6, 'judgehost',         '(Internal/System) Judgehost'),
 (7, 'event_reader',      '(Internal/System) event_reader'),
-(8, 'full_event_reader', '(Internal/System) full_event_reader');
+(8, 'full_event_reader', '(Internal/System) full_event_reader'),
+(9, 'problem_editor',    'Problem editor');
 
 --
 -- Dumping data for table `team_category`

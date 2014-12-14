@@ -6,7 +6,7 @@
  * under the GNU GPL. See README and COPYING for details.
  */
 require('init.php');
-requireAdmin();
+requireProblemEditor();
 
 if ( !file_exists(LIBDIR . '/relations.php') ) {
 	error("'".LIBDIR . "/relations.php' is missing, regenerate with 'make dist'.");
@@ -14,6 +14,9 @@ if ( !file_exists(LIBDIR . '/relations.php') ) {
 require(LIBDIR . '/relations.php');
 
 $t = @$_REQUEST['table'];
+if ( !in_array($t, array('problem', 'testcase')) ) {
+	requireAdmin();
+}
 $referrer = @$_REQUEST['referrer'];
 if ( ! preg_match('/^[._a-zA-Z0-9?&=-]*$/', $referrer ) ) error ("Invalid characters in referrer.");
 

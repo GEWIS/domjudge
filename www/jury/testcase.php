@@ -102,7 +102,7 @@ require(LIBWWWDIR . '/header.php');
 echo "<h1>" . $title ."</h1>\n\n";
 
 $result = '';
-if ( isset($_POST['probid']) && IS_ADMIN ) {
+if ( isset($_POST['probid']) && (IS_ADMIN || IS_PROBLEM_EDITOR) ) {
 
 	$maxrank = 0;
 	foreach($data as $rank => $row) {
@@ -226,7 +226,7 @@ if ( count($data)<(int)key($data) ) {
 echo "<p><a href=\"problem.php?id=" . urlencode($probid) . "\">back to problem p" .
 	htmlspecialchars($probid) . "</a></p>\n\n";
 
-if ( IS_ADMIN ) {
+if ( IS_ADMIN || IS_PROBLEM_EDITOR ) {
 	echo addForm($pagename, 'post', null, 'multipart/form-data') .
 	    addHidden('probid', $probid);
 }
@@ -240,7 +240,7 @@ if ( count($data)==0 ) {
 <th scope="col">#</th><th scope="col">download</th>
 <th scope="col">size</th><th scope="col">md5</th>
 <?php
-	if ( IS_ADMIN ) echo '<th scope="col">upload new</th>';
+	if ( IS_ADMIN || IS_PROBLEM_EDITOR ) echo '<th scope="col">upload new</th>';
 ?><th scope="col">sample</th><th scope="col">description</th><th></th>
 </tr></thead>
 <tbody>
@@ -262,11 +262,11 @@ foreach( $data as $rank => $row ) {
 		    htmlspecialchars($probid) . "." . $rank . "." . substr($inout,0,-3) . "</a></td>" .
 		    "<td class=\"size\">" . printsize($row["size_$inout"]) . "</td>" .
 		    "<td class=\"md5\">" . htmlspecialchars($row["md5sum_$inout"]) . "</td>";
-		if ( IS_ADMIN ) {
+		if ( IS_ADMIN || IS_PROBLEM_EDITOR ) {
 		    echo "<td>" . addFileField("update_".$inout."[$rank]") . "</td>";
 		}
 		if ( $inout=='input' ) {
-			if ( IS_ADMIN ) {
+			if ( IS_ADMIN || IS_PROBLEM_EDITOR ) {
 				echo "<td rowspan=\"2\"	class=\"testsample\" onclick=\"editTcSample($rank)\">" .
 				    addSelect("sample[$rank]",array("no", "yes"), $row['sample'], true) . "</td>";
 
@@ -294,7 +294,7 @@ foreach( $data as $rank => $row ) {
 
 if ( count($data)!=0 ) echo "</tbody>\n</table>\n";
 
-if ( IS_ADMIN ) {
+if ( IS_ADMIN || IS_PROBLEM_EDITOR ) {
 	echo "<script type=\"text/javascript\">\n";
 	foreach ( $data as $rank => $row ) {
 		echo "hideTcDescEdit($rank);\n";

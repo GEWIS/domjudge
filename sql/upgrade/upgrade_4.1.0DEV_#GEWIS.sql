@@ -33,6 +33,9 @@ ALTER TABLE `contest`
 -- Add/remove sample/initial contents
 --
 
+INSERT INTO `role` (`roleid`, `role`, `description`) VALUES
+    (9, 'problem_editor',    'Problem editor');
+
 --
 -- Finally remove obsolete structures after moving data
 --

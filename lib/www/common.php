@@ -428,6 +428,16 @@ function requireAdmin() {
 }
 
 /**
+ * Check whether the logged in user has DOMjudge administrator level,
+ * as defined in passwords.php. If not, error and stop further execution.
+ */
+function requireProblemEditor() {
+	if (!checkrole('problem_editor') && !checkrole('admin')) {
+		error("This function is only accessible to administrators and problem editors.");
+	}
+}
+
+/**
  * Translate error codes from PHP's file upload function into
  * concrete error strings.
  */
