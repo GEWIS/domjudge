@@ -108,7 +108,7 @@ $pattern_dateorpos = "($pattern_datetime|\+$pattern_offset)";
 		echo "<td>" . $current_problem['name'] . "</td>\n";
 		echo "<td>" .
 		     addInput("data[0][mapping][extra][$i][shortname]", $current_problem['shortname'], 8,
-			      10) . "</td>\n";
+			      25) . "</td>\n";
 		echo "<td>";
 		echo addRadioButton("data[0][mapping][extra][$i][allow_submit]",
 				(!isset($current_problem['allow_submit']) || $current_problem['allow_submit']), 1) .
