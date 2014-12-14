@@ -732,20 +732,22 @@ function putTeamRow($cdata, $teamids) {
 
 			$penalty = calcPenaltyTime( $srow['is_correct'], $srow['submissions'] );
 
-			// fill our matrix with the scores from the database
-			$MATRIX[$srow['teamid']][$srow['probid']] = array (
-				'is_correct'      => (bool) $srow['is_correct'],
-				'num_submissions' => $srow['submissions'],
-				'num_pending'     => $srow['pending'],
-				'time'            => $srow['totaltime'],
-				'penalty'         => $penalty );
+			if ( $cdata['scoreboardhideproblems'] != 0 ) {
+				// fill our matrix with the scores from the database
+				$MATRIX[$srow['teamid']][$srow['probid']] = array(
+					'is_correct' => (bool)$srow['is_correct'],
+					'num_submissions' => $srow['submissions'],
+					'num_pending' => $srow['pending'],
+					'time' => $srow['totaltime'],
+					'penalty' => $penalty);
+			}
 		}
 
 		// Fill in empty places in the matrix
 		foreach ( array_keys($teams) as $team ) {
 			foreach ( array_keys($probs) as $prob ) {
 				// provide default scores when nothing submitted for this team,problem yet
-				if ( ! isset($MATRIX[$team][$prob]) ) {
+				if ( $cdata['scoreboardhideproblems'] != 0 && ! isset($MATRIX[$team][$prob]) ) {
 					$MATRIX[$team][$prob] = array(
 						'is_correct'      => FALSE,
 						'num_submissions' => 0,
@@ -762,7 +764,9 @@ function putTeamRow($cdata, $teamids) {
 		                'summary'    => $SUMMARY,
 		                'teams'      => $teams,
 		                'problems'   => $probs,
-		                'categories' => null );
+		                'categories' => null,
+		                'hideproblems' => (bool)$cdata['scoreboardhideproblems'],
+		                'hidetime' => (bool)$cdata['scoreboardhidetime']);
 	}
 	else {
 		// Otherwise, calculate scoreboard as jury to display non-visible teams
