@@ -71,7 +71,7 @@ function check_problem($data, $keydata = null)
 		$tempname = $_FILES['data']['tmp_name'][0]['problemtext'];
 		if ( strrpos($origname,'.')!==FALSE ) {
 			$ext = substr($origname,strrpos($origname,'.')+1);
-			if ( in_array($ext, array('txt','html','pdf')) ) {
+			if ( in_array($ext, array('pdf')) ) {
 				$data['problemtext_type'] = $ext;
 			}
 		}
@@ -88,14 +88,35 @@ function check_problem($data, $keydata = null)
 			case 'application/pdf':
 				$data['problemtext_type'] = 'pdf';
 				break;
-			case 'text/html':
-				$data['problemtext_type'] = 'html';
-				break;
-			case 'text/plain':
-				$data['problemtext_type'] = 'txt';
-				break;
 			}
 		}
+
+
+		$extra = '';
+		$full_pdf = file_get_contents($tempname);
+		if ( $data['problemtext_start'] != 0 ) {
+			$extra = sprintf('-f %d -l %d', $data['problemtext_start'], $data['problemtext_end']);
+
+			$input = sprintf('A=%s', $tempname);
+			$pages = sprintf('A%d-%d', $data['problemtext_start'], $data['problemtext_end']);
+			$output = sprintf('%s-cat', $tempname);
+			$cmd = sprintf('pdftk %s cat %s output %s', escapeshellarg($input), escapeshellarg($pages), escapeshellarg($output));
+			exec($cmd);
+			$full_pdf = file_get_contents($output);
+			unlink($output);
+		}
+		unset($data['problemtext_start']);
+		unset($data['problemtext_end']);
+		unset($_FILES['data']['tmp_name'][0]['problemtext']);
+
+		$data['problemtext'] = $full_pdf;
+
+		$cmd = sprintf('cd /tmp && pdf2htmlEX %s %s %s', $extra, escapeshellarg($tempname), escapeshellarg(basename($tempname) . '.html'));
+
+		exec($cmd);
+		$data['problemtext_html'] = file_get_contents($tempname . '.html');
+		unlink($tempname . '.html');
+
 		if ( !isset($data['problemtext_type']) ) {
 			ch_error("Problem statement has unknown file type.");
 		}
@@ -107,6 +128,7 @@ function check_problem($data, $keydata = null)
 	// Unset problemtext_type if problemtext was set to null explicitly.
 	if ( array_key_exists('problemtext', $data) && empty($data['problemtext']) ) {
 		$data['problemtext_type'] = NULL;
+		$data['problemtext_html'] = NULL;
 	}
 
 	if ( !empty($data['special_compare']) ) {

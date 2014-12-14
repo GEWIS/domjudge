@@ -78,7 +78,7 @@ if ( !empty($cmd) ):
 
 	if ( $cmd == 'edit' ) {
 		echo "<tr><td>Problem ID:</td><td>";
-		$row = $DB->q('TUPLE SELECT p.probid,p.name,
+		$row = $DB->q('TUPLE SELECT p.probid,p.name,p.source,
 					    p.timelimit,p.special_run,p.special_compare,
 		                            p.problemtext_type, COUNT(testcaseid) AS testcases
 		               FROM problem p
@@ -104,14 +104,25 @@ if ( !empty($cmd) ):
 <td><?php echo addInputField('number','data[0][timelimit]', @$row['timelimit'],
 	' min="1" max="10000" required')?> sec</td></tr>
 
-<tr><td><label for="data_0__problemtext_">Problem text:</label></td>
+<tr><td><label for="data_0__source_">Problem source:</label></td>
+<td><?php echo addInput('data[0][source]', @$row['source'], 30, 255)?></td></tr>
+
+<tr><td><label for="data_0__problemtext_">Problem text PDF:</label></td>
 <td><?php
-echo addFileField('data[0][problemtext]', 30, ' accept="text/plain,text/html,application/pdf"');
+echo addFileField('data[0][problemtext]', 30, ' accept="application/pdf"');
 if ( !empty($row['problemtext_type']) ) {
 	echo addCheckBox('unset[0][problemtext]') .
 		'<label for="unset_0__problemtext_">delete</label>';
 }
 ?></td></tr>
+
+<tr><td><label for="data_0__text_start_page_">Start page (0 = all pages):</label></td>
+<td><?php echo addInputField('number','data[0][problemtext_start]', 0,
+	' min="0" max="10000"')?></td></tr>
+
+<tr><td><label for="data_0__text_end_page_">End page (0 = all pages):</label></td>
+<td><?php echo addInputField('number','data[0][problemtext_end]', 0,
+	' min="0" max="10000"')?></td></tr>
 
 <tr><td><label for="data_0__special_run_">Special run script:</label></td>
 <td>
@@ -168,7 +179,7 @@ exit;
 
 endif;
 
-$data = $DB->q('TUPLE SELECT p.probid,p.name,
+$data = $DB->q('TUPLE SELECT p.probid,p.name,p.source,
                              p.timelimit,p.special_run,p.special_compare,
                              p.problemtext_type, count(rank) AS ntestcases
                 FROM problem p
@@ -187,6 +198,7 @@ echo addForm($pagename . '?id=' . urlencode($id),
 <table>
 <tr><td>ID:          </td><td>p<?php echo htmlspecialchars($data['probid'])?></td></tr>
 <tr><td>Name:        </td><td><?php echo htmlspecialchars($data['name'])?></td></tr>
+<tr><td>Source:      </td><td><?php echo htmlspecialchars($data['source'])?></td></tr>
 <tr><td>Testcases:   </td><td><?php
     if ( $data['ntestcases']==0 ) {
 		echo '<em>no testcases</em>';
