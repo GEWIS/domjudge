@@ -165,12 +165,26 @@ Please supply your credentials below, or contact a staff member for assistance.
 <?php
 if (dbconfig_get('allow_registration', false)) { ?>
 <p>If you do not have an account, you can register for one below: </p>
+<style>
+	.robotic { display: none; }
+</style>
 <form action="<?php echo $_SERVER['PHP_SELF'] ?>" method="post">
 <input type="hidden" name="cmd" value="register" />
 <table>
+<tr><td><label for="name">Name:</label></td><td><input type="text" id="name" name="name" value="" size="15" maxlength="15" accesskey="n" /></td></tr>
 <tr><td><label for="login">Username:</label></td><td><input type="text" id="login" name="login" value="" size="15" maxlength="15" accesskey="l" /></td></tr>
 <tr><td><label for="passwd">Password:</label></td><td><input type="password" id="passwd" name="passwd" value="" size="15" maxlength="255" accesskey="p" /></td></tr>
 <tr><td><label for="passwd2">Retype password:</label></td><td><input type="password" id="passwd2" name="passwd2" value="" size="15" maxlength="255" accesskey="r" /></td></tr>
+<tr><td><label for="email">E-mail address:</label></td><td><input type="email" id="email" name="email" value="" size="15" maxlength="255" accesskey="e" /></td></tr>
+<tr class="robotic" id="pot">
+	<td>
+		<label for="robotest">If you're human leave this blank:</label>
+	</td>
+	<td>
+		<!-- The following field is for robots only, invisible to humans: -->
+		<input name="robotest" type="text" id="robotest" size="15" value="" maxlength="255" class="robotest" />
+	</td>
+</tr>
 <tr><td></td><td><input type="submit" value="Register" /></td></tr>
 </table>
 </form>
@@ -341,66 +355,74 @@ function do_login_native($user, $pass)
 }
 
 function do_register() {
-        global $DB, $ip;
-        if ( !dbconfig_get('allow_registration', false) ) {
-            error("Self-Registration is disabled.");
-        }
-        if ( AUTH_METHOD != "PHP_SESSIONS" ) {
-            error("You can only register if the site is using PHP Sessions for authentication.");
-        }
+	global $DB, $ip;
+	if ( !dbconfig_get('allow_registration', false) ) {
+		error("Self-Registration is disabled.");
+	}
+	if ( AUTH_METHOD != "PHP_SESSIONS" ) {
+		error("You can only register if the site is using PHP Sessions for authentication.");
+	}
 
-        $login = trim($_POST['login']);
-        $pass = trim($_POST['passwd']);
-        $pass2 = trim($_POST['passwd2']);
+	$login = trim($_POST['login']);
+	$name = trim($_POST['name']);
+	$pass = trim($_POST['passwd']);
+	$pass2 = trim($_POST['passwd2']);
+	$mail = trim($_POST['email']);
+	$robotest = trim($_POST['robotest']);
 
-        if ( $login == '' || $pass == '') {
-            error("You must enter all fields");
-        }
+	if ( $login == '' || $pass == '' || $mail == '' || $name == '' || $robotest != '' ) {
+		error("You must enter all fields");
+	}
 
-        if ( !ctype_alnum($login) ) {
-            error("Username must consist of only alphanumeric characters.");
-        }
+	if ( !ctype_alnum($login) ) {
+		error("Username must consist of only alphanumeric characters.");
+	}
 
-        if ( $pass != $pass2 ) {
-            error("Your passwords do not match. Please go back and try registering again.");
-        }
-        $user = $DB->q('MAYBETUPLE SELECT * FROM user WHERE username = %s', $login);
-        if ( $user ) {
-            error("That login is already taken.");
-        }
-        $team = $DB->q('MAYBETUPLE SELECT * FROM team WHERE name = %s', $login);
-        if ( $team ) {
-            error("That login is already taken.");
-        }
+	if ( !filter_var($mail, FILTER_VALIDATE_EMAIL) ) {
+		error("Not a valid e-mail address.");
+	}
 
-		// Create the team object
-        $i = array();
-        $i['name'] = $login;
-        $i['categoryid'] = 2; // Self-registered category id
-        $i['enabled'] = 1;
-        $i['comments'] = "Registered by $ip on " . date('r');
+	if ( $pass != $pass2 ) {
+		error("Your passwords do not match. Please go back and try registering again.");
+	}
+	$user = $DB->q('MAYBETUPLE SELECT * FROM user WHERE username = %s', $login);
+	if ( $user ) {
+		error("That login is already taken.");
+	}
+	$team = $DB->q('MAYBETUPLE SELECT * FROM team WHERE name = %s', $login);
+	if ( $team ) {
+		error("That login is already taken.");
+	}
 
-        $teamid = $DB->q("RETURNID INSERT INTO team SET %S", $i);
-        auditlog('team', $teamid, 'registered by ' . $ip);
+	// Create the team object
+	$i = array();
+	$i['name'] = $name;
+	$i['categoryid'] = 2; // Self-registered category id
+	$i['enabled'] = 1;
+	$i['comments'] = "Registered by $ip on " . date('r');
 
-		// Associate a user with the team we just made
-        $i = array();
-        $i['username'] = $login;
-        $i['password'] = md5($login."#".$pass);
-        $i['name'] = $login;
-        $i['teamid'] = $teamid;
-        $newid = $DB->q("RETURNID INSERT INTO user SET %S", $i);
-        auditlog('user', $newid, 'registered by ' . $ip);
+	$teamid = $DB->q("RETURNID INSERT INTO team SET %S", $i);
+	auditlog('team', $teamid, 'registered by ' . $ip);
 
-        $DB->q("INSERT INTO `userrole` (`userid`, `roleid`) VALUES ($newid, 3)");
+	// Associate a user with the team we just made
+	$i = array();
+	$i['username'] = $login;
+	$i['email'] = $mail;
+	$i['password'] = md5($login . "#" . $pass);
+	$i['name'] = $name;
+	$i['teamid'] = $teamid;
+	$newid = $DB->q("RETURNID INSERT INTO user SET %S", $i);
+	auditlog('user', $newid, 'registered by ' . $ip);
 
-        $title = 'Account Registered';
-        $menu = false;
+	$DB->q("INSERT INTO `userrole` (`userid`, `roleid`) VALUES ($newid, 3)");
 
-        require(LIBWWWDIR . '/header.php');
-        echo "<h1>Account registered</h1>\n\n<p><a href=\"./\">Click here to login.</a></p>\n\n";
-        require(LIBWWWDIR . '/footer.php');
-		exit;
+	$title = 'Account Registered';
+	$menu = false;
+
+	require(LIBWWWDIR . '/header.php');
+	echo "<h1>Account registered</h1>\n\n<p><a href=\"./\">Click here to login.</a></p>\n\n";
+	require(LIBWWWDIR . '/footer.php');
+	exit;
 }
 
 // Logout a team. Function does not return and should generate a page

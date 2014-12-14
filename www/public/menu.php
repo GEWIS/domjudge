@@ -12,7 +12,7 @@ if ( checkrole('jury') || checkrole('balloon') ) {
 	echo "<a target=\"_top\" href=\"../jury/\" accesskey=\"j\">→jury</a>\n";
 }
 if ( !logged_in() ) {
-	echo "<a href=\"login.php\" accesskey=\"l\">login</a>\n";
+	echo "<a href=\"login.php\" accesskey=\"l\">login / register</a>\n";
 }
 ?>
 </div></nav>
