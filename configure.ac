@@ -168,6 +168,8 @@ if test "x$FHS_ENABLED" = xyes ; then
 	AC_SUBST(judgehost_rundir,      $localstatedir/run/${PACKAGE_TARNAME})
 	AC_SUBST(judgehost_tmpdir,      /tmp)
 	AC_SUBST(judgehost_judgedir,    $localstatedir/lib/${PACKAGE_TARNAME}/judgings)
+	AC_SUBST(judgehost_chrootdir,   /chroot/${PACKAGE_TARNAME})
+	AC_SUBST(judgehost_cgroupdir,   /cgroup)
 
 	AC_SUBST(domjudge_docdir,       $docdir)
 fi
@@ -212,6 +214,8 @@ AX_PATH(judgehost_logdir,       [$judgehost_root/log])
 AX_PATH(judgehost_rundir,       [$judgehost_root/run])
 AX_PATH(judgehost_tmpdir,       [$judgehost_root/tmp])
 AX_PATH(judgehost_judgedir,     [$judgehost_root/judgings])
+AX_PATH(judgehost_chrootdir,    [/chroot/domjudge])
+AX_PATH(judgehost_cgroupdir,    [/cgroup])
 AX_WITH_COMMENT(7,[      ])
 
 # }}}
@@ -267,31 +271,11 @@ if test "x$enable_submitclient" != "xno"; then
 fi
 # }}}
 
-# Check for building "checktestdata" program.
-AC_ARG_ENABLE(checktestdata,AS_HELP_STRING([--disable-checktestdata],
-[enable building of checktestdata program (default: yes).
- This requires the Boost regex and GNU GMP libraries.]))
-
-if test "x$enable_checktestdata" != "xno"; then
-	AC_SUBST(CHECKTESTDATA_ENABLED,[yes])
-
-	AX_BOOST_BASE([1.33.1],[],[
-		AC_MSG_ERROR([Boost not found (required for checktestdata)])])
-	AX_BOOST_REGEX
-
-	# Check for gmpxx headers separately, as they are C++.
-	AC_LANG_PUSH([C++])
-	AC_CHECK_HEADERS([gmpxx.h])
-	AC_CHECK_LIB(gmpxx,abs,AC_SUBST(LIBGMPXX,'-lgmpxx -lgmp'),[
-		AC_MSG_ERROR([GMPlib not found (required for checktestdata)])],[-lgmp])
-	AC_LANG_POP([C++])
-fi
-
 # Check option to link statically against "special" libraries for
-# submit client and checktestdata programs.
+# submit client.
 AC_ARG_ENABLE(static-linking,AS_HELP_STRING([--enable-static-linking],
-[enable static linking against libcurl,libmagic,libjsoncpp for 'submit'
- and libgmpxx,libboost_regex for 'checktestdata' (default: no).]))
+[enable static linking against libcurl, libmagic, libjsoncpp for 'submit'
+ (default: no).]))
 
 if test "x$enable_static_linking" = "xyes"; then
 	AC_SUBST(STATIC_LINK_START,[-Wl,-Bstatic])
@@ -353,12 +337,6 @@ else
    echo " * submitclient........: disabled"
 fi
 echo ""
-if test "x$CHECKTESTDATA_ENABLED" = xyes ; then
-   echo " * checktestdata.......: enabled"
-else
-   echo " * checktestdata.......: disabled"
-fi
-echo ""
 echo " * documentation.......: $domjudge_docdir"
 echo ""
 echo " * domserver...........: $domserver_root"
@@ -385,6 +363,8 @@ echo "    - log..............: $judgehost_logdir"
 echo "    - run..............: $judgehost_rundir"
 echo "    - tmp..............: $judgehost_tmpdir"
 echo "    - judge............: $judgehost_judgedir"
+echo "    - chroot...........: $judgehost_chrootdir"
+echo "    - cgroup...........: $judgehost_cgroupdir"
 echo ""
 echo "Run 'make' without arguments to get a list of (build) targets."
 echo ""

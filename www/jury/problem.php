@@ -50,12 +50,12 @@ if ( isset($_POST['upload']) ) {
 		}
 		if ( count($_FILES['problem_archive']['tmp_name']) == 1 ) {
 			$probid = empty($newid) ? $id : $newid;
-			$data = $DB->q('TUPLE SELECT shortname, name FROM problem
-			                WHERE probid = %i', $probid);
+			$probname = $DB->q('VALUE SELECT name FROM problem
+			                    WHERE probid = %i', $probid);
 
 			echo '<p><a href="' . $pagename.'?id='.urlencode($probid) .
-			    '">Return to problem ' . $data['shortname'] . ': ' .
-			    $data['shortname'] . ".</a></p>\n";
+			    '">Return to problem p' . htmlspecialchars($probid) .
+			    ': ' . htmlspecialchars($probname) . ".</a></p>\n";
 		}
 		echo "<p><a href=\"problems.php\">Return to problems overview.</a></p>\n";
 	} else {
@@ -169,7 +169,7 @@ exit;
 endif;
 
 $data = $DB->q('TUPLE SELECT p.probid,p.name,
-			     p.timelimit,p.special_run,p.special_compare,
+                             p.timelimit,p.special_run,p.special_compare,
                              p.problemtext_type, count(rank) AS ntestcases
                 FROM problem p
                 LEFT JOIN testcase USING (probid)
@@ -234,13 +234,11 @@ if ( IS_ADMIN ) {
 if ( $current_cid === null) {
 	echo "<h3>Contests</h3>\n\n";
 
-	$res = $DB->q('TABLE SELECT contest.*, contestproblem.shortname AS problemshortname,
-				    contestproblem.allow_submit, contestproblem.allow_judge,
-				    contestproblem.color
-		       FROM contest
-		       INNER JOIN contestproblem USING (cid)
-		       WHERE contestproblem.probid = %i
-		       ORDER BY starttime DESC', $id);
+	$res = $DB->q('TABLE SELECT c.*, cp.shortname AS problemshortname,
+	                            cp.allow_submit, cp.allow_judge, cp.color
+	               FROM contest c
+	               INNER JOIN contestproblem cp USING (cid)
+	               WHERE cp.probid = %i ORDER BY starttime DESC', $id);
 
 	if ( count($res) == 0 ) {
 		echo "<p class=\"nodata\">No contests defined</p>\n\n";

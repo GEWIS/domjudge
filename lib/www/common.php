@@ -99,14 +99,12 @@ function putSubmissions($cdatas, $restrictions, $limit = 0, $highlight = null)
 	    (isset($restrictions['judgehost']) ? 'AND s.judgehost = %s ' : '%_') ;
 
 	$res = $DB->q('SELECT s.submitid, s.teamid, s.probid, s.langid, s.cid,
-	              s.submittime, s.judgehost, s.valid, t.name AS teamname,
-		      cp.shortname, p.name AS probname, l.name AS langname,
-	              j.result, j.judgehost, j.verified, j.jury_member, j.seen ' .
+	               s.submittime, s.judgehost, s.valid, t.name AS teamname,
+	               cp.shortname, p.name AS probname, l.name AS langname,
+	               j.result, j.judgehost, j.verified, j.jury_member, j.seen ' .
 	              $sqlbody .
-	              (isset($restrictions['verified']) ?
-	              'AND ' . $verifyclause : '') .
-	              (isset($restrictions['judged']) ?
-	              'AND ' . $judgedclause : '') .
+	              (isset($restrictions['verified']) ? 'AND ' . $verifyclause : '') .
+	              (isset($restrictions['judged'])   ? 'AND ' . $judgedclause : '') .
 	              'ORDER BY s.submittime DESC, s.submitid DESC ' .
 	              ($limit > 0 ? 'LIMIT 0, %i' : '%_'), $cids,
 	              @$restrictions['teamid'], @$restrictions['categoryid'],
@@ -354,8 +352,7 @@ function putTeam($teamid) {
 function putClock() {
 	global $cdata, $username;
 
-	// current time
-	echo '<div id="clock"><span id="timecur">' . strftime('%a %d %b %Y %T %Z') . "</span>";
+	echo '<div id="clock">';
 	// timediff to end of contest
 	if ( difftime(now(), $cdata['starttime']) >= 0 &&
 	     difftime(now(), $cdata['endtime'])   <  0 ) {
@@ -366,12 +363,7 @@ function putClock() {
 	} else {
 		$left = "";
 	}
-	echo "<br /><span id=\"timeleft\">" . $left . "</span>";
-	if ( logged_in() ) {
-		echo "<br /><span id=\"username\">logged in as " . $username
-			. ( have_logout() ? " <a href=\"../auth/logout.php\">×</a>" : "" )
-			. "</span>";
-	}
+	echo "<span id=\"timeleft\">" . $left . "</span>";
 
 	global $cid, $cdatas;
 	// Show a contest selection form, if there are contests
@@ -379,7 +371,7 @@ function putClock() {
 		echo "<div id=\"selectcontest\">\n";
 		echo addForm('change_contest.php', 'get', 'selectcontestform');
 		$contests = array_map(function($c) { return $c['shortname']; }, $cdatas);
-		echo 'Selected contest: ' . addSelect('cid', $contests, $cid, true);
+		echo 'contest: ' . addSelect('cid', $contests, $cid, true);
 		echo addEndForm();
 		echo "<script type=\"text/javascript\">
 		      document.getElementById('cid').addEventListener('change', function() {
@@ -391,8 +383,14 @@ function putClock() {
 	} elseif ( count($cdatas) == 1 && IS_JURY ) {
 		echo "<div id=\"selectcontest\">\n";
 		$contest = $cdatas[$cid];
-		echo 'Active contest: c' . $cid . ': ' . $contest['contestname'];
+		echo 'contest: ' . $contest['shortname'];
 		echo "</div>\n";
+	}
+
+	if ( logged_in() ) {
+		echo "<div id=\"username\">logged in as " . $username
+			. ( have_logout() ? " <a href=\"../auth/logout.php\">×</a>" : "" )
+			. "</div>";
 	}
 
 	echo "</div>";
@@ -404,7 +402,6 @@ function putClock() {
 	var endtime = " . $cdata['endtime'] . ";
 	var offset = 0;
 	var date = new Date(initial*1000);
-	var timecurelt = document.getElementById(\"timecur\");
 	var timeleftelt = document.getElementById(\"timeleft\");
 
 	setInterval(function(){updateClock();},1000);
@@ -413,11 +410,11 @@ function putClock() {
 }
 
 /**
- * Output a footer for pages containing the DOMjudge version and server host/port.
+ * Output a footer for pages containing the DOMjudge version and server host/port/time
  */
 function putDOMjudgeVersion() {
 	echo "<hr /><address>DOMjudge/" . DOMJUDGE_VERSION .
-		" at ".$_SERVER['SERVER_NAME']." Port ".$_SERVER['SERVER_PORT']."</address>\n";
+		" at ".$_SERVER['SERVER_NAME']." Port ".$_SERVER['SERVER_PORT'].", page generated <span id=\"timecur\">" . strftime('%a %d %b %Y %T %Z') . "</span></address>\n";
 }
 
 /**

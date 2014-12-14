@@ -19,7 +19,6 @@ default:
 	@echo " - make domserver"
 	@echo " - make judgehost"
 	@echo " - make submitclient"
-	@echo " - make checktestdata"
 	@echo " - make docs"
 	@echo or
 	@echo " - make install-domserver"
@@ -43,16 +42,11 @@ build: domserver judgehost
 ifeq ($(SUBMITCLIENT_ENABLED),yes)
 build: submitclient
 endif
-ifeq ($(CHECKTESTDATA_ENABLED),yes)
-build: checktestdata
-endif
 
 # MAIN TARGETS
-domserver judgehost docs submitclient checktestdata: paths.mk config
+domserver judgehost docs submitclient: paths.mk config
 submitclient:
 	$(MAKE) -C submit submitclient
-checktestdata:
-	$(MAKE) -C misc-tools checktestdata
 install-domserver: domserver domserver-create-dirs
 install-judgehost: judgehost judgehost-create-dirs
 install-docs: docs-create-dirs
@@ -79,7 +73,7 @@ install-domserver: SUBDIRS=etc     lib sql www                    misc-tools
 judgehost:         SUBDIRS=etc                 judge              misc-tools
 install-judgehost: SUBDIRS=etc     lib         judge              misc-tools
 docs:              SUBDIRS=    doc
-install-docs:      SUBDIRS=    doc         www                    misc-tools
+install-docs:      SUBDIRS=    doc         www
 dist:              SUBDIRS=        lib sql                        misc-tools
 clean:             SUBDIRS=etc doc lib sql www judge submit tests misc-tools
 distclean:         SUBDIRS=etc doc lib sql www judge submit tests misc-tools
@@ -193,4 +187,4 @@ clean-autoconf:
 
 .PHONY: $(addsuffix -create-dirs,domserver judgehost docs) check-root \
         clean-autoconf $(addprefix maintainer-,conf install uninstall) \
-        config submitclient checktestdata distdocs
+        config submitclient distdocs

@@ -6,6 +6,15 @@
  * under the GNU GPL. See README and COPYING for details.
  */
 
+// Returns a piece of SQL code to return a field, truncated to a fixed
+// character length, and with a message if truncation happened.
+function truncate_SQL_field($field)
+{
+	$size = 50000;
+	$msg = "\n[output truncated after 50,000 B]\n";
+	return "IF( CHAR_LENGTH($field)>$size , CONCAT(LEFT($field,$size),'$msg') , $field)";
+}
+
 function display_compile_output($output, $success) {
 	$color = "#6666FF";
 	$msg = "not finished yet";
@@ -101,25 +110,25 @@ $title = 'Submission s'.@$id;
 if ( ! $id ) error("Missing or invalid submission id");
 
 $submdata = $DB->q('MAYBETUPLE SELECT s.teamid, s.probid, s.langid,
-		    s.submittime, s.valid, c.cid, c.shortname AS contestshortname, c.contestname,
-		    t.name AS teamname, l.name AS langname, cp.shortname, p.name AS probname,
+                    s.submittime, s.valid, c.cid, c.shortname AS contestshortname, c.contestname,
+                    t.name AS teamname, l.name AS langname, cp.shortname, p.name AS probname,
                     CEILING(time_factor*timelimit) AS maxruntime
                     FROM submission s
                     LEFT JOIN team     t ON (t.teamid = s.teamid)
                     LEFT JOIN problem  p ON (p.probid = s.probid)
                     LEFT JOIN language l ON (l.langid = s.langid)
                     LEFT JOIN contest  c ON (c.cid    = s.cid)
-		    LEFT JOIN contestproblem cp ON (cp.probid = p.probid AND cp.cid = c.cid)
+                    LEFT JOIN contestproblem cp ON (cp.probid = p.probid AND cp.cid = c.cid)
                     WHERE submitid = %i', $id);
 
 if ( ! $submdata ) error ("Missing submission data");
 
 $jdata = $DB->q('KEYTABLE SELECT judgingid AS ARRAYKEY, result, valid, starttime,
-		 judgehost, verified, jury_member, verify_comment
-		 FROM judging
-		 WHERE cid IN %Ai AND submitid = %i
-		 ORDER BY starttime ASC, judgingid ASC',
-		 getCurContests(FALSE), $id);
+                 judgehost, verified, jury_member, verify_comment
+                 FROM judging
+                 WHERE cid = %i AND submitid = %i
+                 ORDER BY starttime ASC, judgingid ASC',
+                $submdata['cid'], $id);
 
 // When there's no judging selected through the request, we select the
 // valid one.
@@ -180,12 +189,12 @@ if ( ! $submdata['valid'] ) {
 ?>
 
 <p>
-<img title="team" alt="Team:" src="../images/team.png"/> <a href="team.php?id=<?php echo urlencode($submdata['teamid'])?>&cid=<?php echo urlencode($submdata['cid'])?>">
+<img title="team" alt="Team:" src="../images/team.png"/> <a href="team.php?id=<?php echo urlencode($submdata['teamid'])?>&amp;cid=<?php echo urlencode($submdata['cid'])?>">
     <?php echo htmlspecialchars($submdata['teamname'] . " (t" . $submdata['teamid'].")")?></a>&nbsp;&nbsp;
 <img title="contest" alt="Contest:" src="../images/contest.png"/> <a href="contest.php?id=<?php echo $submdata['cid']?>">
 	<span class="contestid"><?php echo htmlspecialchars($submdata['contestshortname'])?></span>:
 	<?php echo htmlspecialchars($submdata['contestname'])?></a>&nbsp;&nbsp;
-<img title="problem" alt="Problem:" src="../images/problem.png"/> <a href="problem.php?id=<?php echo $submdata['probid']?>&cid=<?php echo urlencode($submdata['cid'])?>">
+<img title="problem" alt="Problem:" src="../images/problem.png"/> <a href="problem.php?id=<?php echo $submdata['probid']?>&amp;cid=<?php echo urlencode($submdata['cid'])?>">
 	<span class="probid"><?php echo htmlspecialchars($submdata['shortname'])?></span>:
 	<?php echo htmlspecialchars($submdata['probname'])?></a>&nbsp;&nbsp;
 <img title="language" alt="Language:" src="../images/lang.png"/> <a href="language.php?id=<?php echo $submdata['langid']?>">
@@ -199,8 +208,8 @@ if ( ! $submdata['valid'] ) {
 
 <?php
 
-if ( count($jdata) > 1 ) {
-	echo "<p><table class=\"list\">\n" .
+if ( count($jdata) > 1 || ( count($jdata)==1 && !isset($jid) ) ) {
+	echo "<table class=\"list\">\n" .
 		"<caption>Judgings</caption>\n<thead>\n" .
 		"<tr><td></td><th scope=\"col\">ID</th><th scope=\"col\">start</th>" .
 		"<th scope=\"col\">judgehost</th><th scope=\"col\">result</th>" .
@@ -225,10 +234,12 @@ if ( count($jdata) > 1 ) {
 			"</tr>\n";
 
 	}
-    echo "</tbody>\n</table>\n</p>\n\n";
+    echo "</tbody>\n</table>\n\n";
 
-} else if ( count($jdata) == 0 ) {
-	echo "<p><em>Not judged yet</em></p>\n\n";
+}
+
+if ( !isset($jid) ) {
+	echo "<p><em>Not (re)judged yet</em></p>\n\n";
 }
 
 
@@ -244,7 +255,13 @@ if ( isset($jid) )  {
 			$jid, $jud['submitid'], $id));
 
 	// Display testcase runs
-	$runs = $DB->q('SELECT r.*, t.rank, t.description FROM testcase t
+	$runs = $DB->q('SELECT r.runid, r.judgingid, r.testcaseid, r.runresult, r.runtime, ' .
+	                       truncate_SQL_field('r.output_run')    . ' AS output_run, ' .
+	                       truncate_SQL_field('r.output_diff')   . ' AS output_diff, ' .
+	                       truncate_SQL_field('r.output_error')  . ' AS output_error, ' .
+	                       truncate_SQL_field('r.output_system') . ' AS output_system,
+	                       t.rank, t.description
+	                FROM testcase t
 	                LEFT JOIN judging_run r ON ( r.testcaseid = t.testcaseid AND
 	                                             r.judgingid = %i )
 	                WHERE t.probid = %s ORDER BY rank',

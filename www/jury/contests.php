@@ -33,8 +33,9 @@ if ( isset($_POST['donow']) ) {
 			$docdata[$f] = check_relative_time($docdata[$f.'_string'], $docdata['starttime'], $f);
 		}
 		$DB->q('UPDATE contest SET starttime = %s, starttime_string = %s,
-			endtime = %s, freezetime = %s, unfreezetime = %s, activatetime = %s, deactivatetime = %s
-			WHERE cid = %i', $docdata['starttime'], $docdata['starttime_string'],
+		        endtime = %s, freezetime = %s, unfreezetime = %s,
+		        activatetime = %s, deactivatetime = %s
+		        WHERE cid = %i', $docdata['starttime'], $docdata['starttime_string'],
 		       $docdata['endtime'], $docdata['freezetime'], $docdata['unfreezetime'],
 		       $docdata['activatetime'], $docdata['deactivatetime'], $docid);
 		header ("Location: ./contests.php?edited=1");
@@ -157,7 +158,7 @@ if ( empty($curcids) )  {
 
 		echo "</table>\n";
 
-		echo "</legend>\n</fieldset>\n</form>\n\n";
+		echo "</fieldset>\n</form>\n\n";
 	}
 
 }
@@ -167,10 +168,9 @@ echo "</fieldset>\n\n";
 
 // Get data. Starttime seems most logical sort criterion.
 $res = $DB->q('TABLE SELECT contest.*, COUNT(teamid) AS numteams
-	       FROM contest
-	       LEFT JOIN contestteam USING (cid)
-	       GROUP BY cid
-	       ORDER BY starttime DESC');
+               FROM contest
+               LEFT JOIN contestteam USING (cid)
+               GROUP BY cid ORDER BY starttime DESC');
 
 if( count($res) == 0 ) {
 	echo "<p class=\"nodata\">No contests defined</p>\n\n";
@@ -184,7 +184,9 @@ if( count($res) == 0 ) {
 	echo "<th scope=\"col\">public?</th>";
 	echo "<th scope=\"col\" class=\"sorttable_numeric\"># teams</th>";
 	echo "<th scope=\"col\" class=\"sorttable_numeric\"># problems</th>";
-	echo "<th scope=\"col\">name</th></tr>\n</thead>\n<tbody>\n";
+	echo "<th scope=\"col\">name</th>" .
+	     ( IS_ADMIN ? "<th scope=\"col\"></th>" : '' ) .
+	     "</tr>\n</thead>\n<tbody>\n";
 
 	$iseven = false;
 	foreach($res as $row) {

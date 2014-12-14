@@ -27,7 +27,7 @@ function read_credentials() {
 		if ( $credential{0} == '#' ) continue;
 		list ($endpointID, $resturl, $restuser, $restpass) = preg_split("/\s+/", trim($credential));
 		if (array_key_exists($endpointID, $endpoints)) {
-			error("Error parsing REST API credentials. Duplicate endpoint ID");
+			error("Error parsing REST API credentials. Duplicate endpoint ID.");
 		}
 		$endpoints[$endpointID] = array(
 			"url" => $resturl,
@@ -277,8 +277,6 @@ initsignals();
 
 read_credentials();
 
-if ( isset($options['daemon']) ) daemonize(PIDFILE);
-
 // Warn when chroot has been disabled. This has security implications.
 if ( ! USE_CHROOT ) {
 	logmsg(LOG_WARNING, "Chroot disabled. This reduces judgehost security.");
@@ -315,6 +313,9 @@ foreach ($endpoints as $id=>$endpoint) {
 			   " in my name; given back");
 	}
 }
+
+// If all startup done, daemonize
+if ( isset($options['daemon']) ) daemonize(PIDFILE);
 
 // Constantly check API for unjudged submissions
 $endpointIDs = array_keys($endpoints);
@@ -358,7 +359,7 @@ while ( TRUE ) {
 	// nothing returned -> no open submissions for us
 	if ( empty($row) ) {
 		if ( ! $endpoints[$endpointID]["waiting"] ) {
-			logmsg(LOG_INFO, "No submissions in queue(for endpoint $endpointID), waiting...");
+			logmsg(LOG_INFO, "No submissions in queue (for endpoint $endpointID), waiting...");
 			$endpoints[$endpointID]["waiting"] = TRUE;
 		}
 		continue;
@@ -367,7 +368,7 @@ while ( TRUE ) {
 	// we have gotten a submission for judging
 	$endpoints[$endpointID]["waiting"] = FALSE;
 
-	logmsg(LOG_NOTICE, "Judging submission s$row[submitid](endpoint $endpointID) ".
+	logmsg(LOG_NOTICE, "Judging submission s$row[submitid] (endpoint $endpointID) ".
 		   "(t$row[teamid]/p$row[probid]/$row[langid]), id j$row[judgingid]...");
 
 	judge($row);
