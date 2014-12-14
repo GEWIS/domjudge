@@ -517,9 +517,11 @@ function putProblemTextList()
 	} else {
 
 		// otherwise, display list
-		$res = $DB->q('SELECT probid,shortname,name,color,problemtext_type
-			       FROM problem INNER JOIN contestproblem USING (probid) WHERE cid = %i AND allow_submit = 1 AND
-			       problemtext_type IS NOT NULL ORDER BY shortname', $cid);
+		$res = $DB->q('SELECT problem.probid,shortname,name,color,problemtext_type, COUNT(testcaseid) AS num_samples
+			       FROM problem INNER JOIN contestproblem USING (probid)
+			       LEFT JOIN testcase ON testcase.probid = problem.probid AND testcase.sample = 1
+			       WHERE cid = %i AND allow_submit = 1 AND
+			       problemtext_type IS NOT NULL GROUP BY problem.probid ORDER BY shortname', $cid);
 
 		if ( $res->count() > 0 ) {
 			echo "<ul>\n";
@@ -527,7 +529,12 @@ function putProblemTextList()
 				print '<li> ' .
 				      '<a href="problem.php?id=' . urlencode($row['probid']) . '">' .
 				      'Problem ' . htmlspecialchars($row['shortname']) . ': ' .
-				      htmlspecialchars($row['name']) . "</a></li>\n";
+				      htmlspecialchars($row['name']) . "</a>";
+				if ( $row['num_samples'] > 0 ) {
+					print ' - <a href="samples.php?id=' . urlencode($row['probid']) . '">' .
+						'Download sample data</a>';
+				}
+				print "</li>\n";
 			}
 			echo "</ul>\n";
 		}
