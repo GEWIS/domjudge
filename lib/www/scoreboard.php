@@ -40,6 +40,8 @@ function genScoreBoard($cdata, $jury = FALSE, $filter = NULL) {
 
 	$cid = $cdata['cid'];
 
+	$max_expanded = dbconfig_get('scoreboard_expanded');
+
 	// Show final scores if contest is over and unfreezetime has been
 	// reached, or if contest is over and no freezetime had been set.
 	// We can compare $now and the dbfields stringwise.
@@ -57,6 +59,7 @@ function genScoreBoard($cdata, $jury = FALSE, $filter = NULL) {
 	// get the teams, problems and categories
 	$teams = getTeams($filter, $jury, $cdata);
 	$probs = getProblems($cdata);
+	$probcount = count($probs);
 	$categs = getCategories($jury);
 
 	// initialize the arrays we'll build from the data
@@ -85,13 +88,15 @@ function genScoreBoard($cdata, $jury = FALSE, $filter = NULL) {
 
 		$penalty = calcPenaltyTime( $srow['is_correct'], $srow['submissions'] );
 
-		// fill our matrix with the scores from the database
-		$MATRIX[$srow['teamid']][$srow['probid']] = array (
-			'is_correct'      => (bool) $srow['is_correct'],
-			'num_submissions' => $srow['submissions'],
-			'num_pending'     => $srow['pending'],
-			'time'            => $srow['totaltime'],
-			'penalty'         => $penalty );
+		if ( $probcount <= $max_expanded ) {
+			// fill our matrix with the scores from the database
+			$MATRIX[$srow['teamid']][$srow['probid']] = array(
+				'is_correct' => (bool)$srow['is_correct'],
+				'num_submissions' => $srow['submissions'],
+				'num_pending' => $srow['pending'],
+				'time' => $srow['totaltime'],
+				'penalty' => $penalty);
+		}
 
 		// calculate totals for this team
 		if ( $srow['is_correct'] ) {
@@ -291,6 +296,9 @@ function renderScoreBoardTable($sdata, $myteamid = null, $static = FALSE,
 	$categs  = $sdata['categories'];
 	unset($sdata);
 
+	$max_expanded = dbconfig_get('scoreboard_expanded');
+	$probcount = count($probs);
+
 	// configuration
 	$SHOW_AFFILIATIONS = dbconfig_get('show_affiliations', 1);
 	$SHOW_PENDING      = dbconfig_get('show_pending', 0);
@@ -314,17 +322,19 @@ function renderScoreBoardTable($sdata, $myteamid = null, $static = FALSE,
 		'>' . jurylink(null, 'team') . '</th>' .
 		'<th title="# solved / penalty time" colspan="2" scope="col">' .
 		jurylink(null, 'score') . '</th>' . "\n";
-	foreach( $probs as $pr ) {
-		echo '<th title="problem \'' . htmlspecialchars($pr['name']) . '\'" scope="col">';
-		$str = htmlspecialchars($pr['shortname']) .
-		       (!empty($pr['color']) ? ' <div class="circle" style="background: ' .
-			htmlspecialchars($pr['color']) . ';"></div>' : '') ;
+	if ( $probcount <= $max_expanded ) {
+		foreach ( $probs as $pr ) {
+			echo '<th title="problem \'' . htmlspecialchars($pr['name']) . '\'" scope="col">';
+			$str = htmlspecialchars($pr['shortname']) .
+				(!empty($pr['color']) ? ' <div class="circle" style="background: ' .
+					htmlspecialchars($pr['color']) . ';"></div>' : '');
 
-		if ( IS_JURY || $pr['hastext']>0 ) {
-		     echo '<a href="problem.php?id=' . urlencode($pr['probid']) .
-			     '">' . $str . '</a></th>';
-		} else {
-			echo '<a>' . $str . '</a></th>';
+			if ( IS_JURY || $pr['hastext'] > 0 ) {
+				echo '<a href="problem.php?id=' . urlencode($pr['probid']) .
+					'">' . $str . '</a></th>';
+			} else {
+				echo '<a>' . $str . '</a></th>';
+			}
 		}
 	}
 	echo "</tr>\n</thead>\n\n<tbody>\n";
@@ -402,38 +412,40 @@ function renderScoreBoardTable($sdata, $myteamid = null, $static = FALSE,
 			'<td class="scorenc">' . jurylink(null,$totals['num_correct']) . '</td>' .
 			'<td class="scorett">' . jurylink(null,$totals['total_time'] ) . '</td>';
 
-		// for each problem
-		foreach ( array_keys($probs) as $prob ) {
+		if ( $probcount <= $max_expanded ) {
+			// for each problem
+			foreach ( array_keys($probs) as $prob ) {
 
-			echo '<td class=';
-			// CSS class for correct/incorrect/neutral results
-			if( $matrix[$team][$prob]['is_correct'] ) {
-				// The best times for each problem may not have been
-				// calculated (if called from putTeamRow()), so we
-				// have to suppress an undefined index here.
-				echo '"score_correct' .
-					( @$summary['problems'][$prob]['best_time_sort'][$totals['sortorder']]
-				      ===$matrix[$team][$prob]['time'] ? ' score_first' : '') . '"';
-			} elseif ( $matrix[$team][$prob]['num_pending'] > 0 && $SHOW_PENDING ) {
-				echo '"score_pending"';
-			} elseif ( $matrix[$team][$prob]['num_submissions'] > 0 ) {
-				echo '"score_incorrect"';
-			} else {
-				echo '"score_neutral"';
+				echo '<td class=';
+				// CSS class for correct/incorrect/neutral results
+				if ( $matrix[$team][$prob]['is_correct'] ) {
+					// The best times for each problem may not have been
+					// calculated (if called from putTeamRow()), so we
+					// have to suppress an undefined index here.
+					echo '"score_correct' .
+						(@$summary['problems'][$prob]['best_time_sort'][$totals['sortorder']]
+						=== $matrix[$team][$prob]['time'] ? ' score_first' : '') . '"';
+				} elseif ( $matrix[$team][$prob]['num_pending'] > 0 && $SHOW_PENDING ) {
+					echo '"score_pending"';
+				} elseif ( $matrix[$team][$prob]['num_submissions'] > 0 ) {
+					echo '"score_incorrect"';
+				} else {
+					echo '"score_neutral"';
+				}
+				// number of submissions for this problem
+				$str = $matrix[$team][$prob]['num_submissions'];
+				// add pending submissions
+				if ( $matrix[$team][$prob]['num_pending'] > 0 && $SHOW_PENDING ) {
+					$str .= ' + ' . $matrix[$team][$prob]['num_pending'];
+				}
+				// if correct, print time scored
+				if ( $matrix[$team][$prob]['is_correct'] ) {
+					$str .= '/' . $matrix[$team][$prob]['time'];
+				}
+				echo '>' . jurylink('team.php?id=' . urlencode($team) .
+						'&amp;restrict=probid:' . urlencode($prob),
+						$str) . '</td>';
 			}
-			// number of submissions for this problem
-			$str = $matrix[$team][$prob]['num_submissions'];
-			// add pending submissions
-			if( $matrix[$team][$prob]['num_pending'] > 0 && $SHOW_PENDING ) {
-				$str .= ' + ' . $matrix[$team][$prob]['num_pending'];
-			}
-			// if correct, print time scored
-			if( $matrix[$team][$prob]['is_correct'] ) {
-				$str .= '/' . $matrix[$team][$prob]['time'];
-			}
-			echo '>' . jurylink('team.php?id=' . urlencode($team) .
-								'&amp;restrict=probid:' . urlencode($prob),
-			                    $str) . '</td>';
 		}
 		echo "</tr>\n";
 	}
@@ -450,12 +462,14 @@ function renderScoreBoardTable($sdata, $myteamid = null, $static = FALSE,
 			'<td title=" ">' . jurylink(null,'Summary') . '</td>' .
 			'<td title="total solved" class="scorenc">' . jurylink(null,$summary['num_correct'])  . '</td><td title=" "></td>';
 
-		foreach( array_keys($probs) as $prob ) {
-			$str = $summary['problems'][$prob]['num_submissions'] . '/' .
-			       $summary['problems'][$prob]['num_correct'];
-			echo '<td>' .
-				jurylink('problem.php?id=' . urlencode($prob),$str) .
-				'</td>';
+		if ( $probcount <= $max_expanded ) {
+			foreach ( array_keys($probs) as $prob ) {
+				$str = $summary['problems'][$prob]['num_submissions'] . '/' .
+					$summary['problems'][$prob]['num_correct'];
+				echo '<td>' .
+					jurylink('problem.php?id=' . urlencode($prob), $str) .
+					'</td>';
+			}
 		}
 		echo "</tr>\n</tbody>\n";
 	}

@@ -35,7 +35,8 @@ INSERT INTO `configuration` (`name`, `value`, `type`, `description`) VALUES
 ('time_format', '"%H:%M"', 'string', 'The format used to print times. For formatting options see the PHP \'strftime\' function.'),
 ('default_compare', '"compare"', 'string', 'The script used to compare outputs if no special compare script specified.'),
 ('default_run', '"run"', 'string', 'The script used to run submissions if no special run script specified.'),
-('allow_registration', '0', 'bool', 'Allow users to register themselves with the system?');
+('allow_registration', '0', 'bool', 'Allow users to register themselves with the system?'),
+('scoreboard_expanded', '15', 'int', 'Maximum number of problems in a scoreboard before not showing problems.');
 
 --
 -- Dumping data for table `executable`

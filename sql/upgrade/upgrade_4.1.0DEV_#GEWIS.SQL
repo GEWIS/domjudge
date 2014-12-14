@@ -31,7 +31,8 @@ ALTER TABLE `problem`
 -- Add/remove sample/initial contents
 --
 
-
+INSERT INTO `configuration` (`name`, `value`, `type`, `description`) VALUES
+    ('scoreboard_expanded', '15', 'int', 'Maximum number of problems in a scoreboard before not showing problems.');
 
 --
 -- Finally remove obsolete structures after moving data
