@@ -116,6 +116,38 @@ function addSelect($name, $values, $default = null, $usekeys = false, $multi = f
 }
 
 /**
+ * Function to create a selectlist with grouos from a 2 dimensional array.
+ * Usage:
+ * name: html name attribute
+ * groups: array(group => array ( key => value ))  ->  <optgroup label="group"><option value="key">value</option></optgroup>
+ * default: the key that will be selected
+ * usekeys: use the keys of the array as option value or not
+ * multi: multiple values are selectable, set to integer to set vertical size
+ */
+function addSelectGrouped($name, $groups, $default = null, $usekeys = false, $multi = false)
+{
+	$size = 5;
+	if ( is_int($multi) ) $size = $multi;
+
+	$ret = '<select name="' . htmlspecialchars($name) . '"' .
+		($multi ? " multiple=\"multiple\" size=\"$size\"" : '') .
+		' id="' . htmlspecialchars(strtr($name, '[]', '__')) . "\">\n";
+	foreach ( $groups as $group => $values ) {
+		$ret .= '<optgroup label="' . htmlspecialchars($group) . '">';
+		foreach ( $values as $k => $v ) {
+			if ( !$usekeys ) $k = $v;
+			$ret .= '<option value="' . htmlspecialchars($k) . '"' .
+				(matchSelect($k, $default) ? ' selected="selected"' : '') . '>' .
+				htmlspecialchars($v) . "</option>\n";
+		}
+		$ret .= '</optgroup>';
+	}
+	$ret .= "</select>\n";
+
+	return $ret;
+}
+
+/**
  * Form submission button
  * Note the switched value/name parameters!
  */

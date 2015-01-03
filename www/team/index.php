@@ -65,17 +65,47 @@ if ( $fdata['cstarted'] ) {
 		}
 		echo " />\n";
 
+		$solved = array();
+		if ( $cdata['scoreboardhideproblems'] ) {
+			$scoredata = $DB->q("SELECT * FROM scorecache_jury WHERE cid = %i AND teamid = %i", $cid, $teamid);
+			while ( $srow = $scoredata->next() ) {
+				$solved[$srow['probid']] = (bool)$srow['is_correct'];
+			}
+		}
 
 		$probs = array();
+		if ( $cdata['scoreboardhideproblems'] ) {
+			$probs = array(
+				'Not yet solved:' => array(),
+				'Solved:' => array(),
+			);
+		}
 		$selected = '';
 		foreach($probdata as $probinfo) {
-			$probs[$probinfo['probid']]=$probinfo['shortname'];
+			$probid = $probinfo['probid'];
+			if ( $cdata['scoreboardhideproblems'] ) {
+				if ( $solved[$probid] ) {
+					$probs['Solved:'][$probid] = $probinfo['shortname'];
+				}
+				else
+				{
+					$probs['Not yet solved:'][$probid] = $probinfo['shortname'];
+				}
+			}
+			else
+			{
+				$probs[$probid]=$probinfo['shortname'];
+			}
 			if ( isset($_GET['problem']) && $_GET['problem'] == $probinfo['shortname'] ) {
 				$selected = $probinfo['probid'];
 			}
 		}
-		$probs[''] = 'problem';
-		echo addSelect('probid', $probs, $selected, true);
+		$probs['Solved:'][''] = 'problem';
+		if ( $cdata['scoreboardhideproblems'] ) {
+			echo addSelectGrouped('probid', $probs, $selected, true);
+		} else {
+			echo addSelect('probid', $probs, $selected, true);
+		}
 		foreach($langdata as $langid => $langdata) {
 			$langs[$langid] = $langdata['name'];
 		}
