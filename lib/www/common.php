@@ -552,6 +552,93 @@ function putProblemTextList()
 }
 
 /**
+ * Outputs table of problem statements for this contest including stats
+ */
+function putProblemTextTable($teamid)
+{
+	global $cid, $cdata, $DB;
+	$fdata = calcFreezeData($cdata);
+
+	if ( ! have_problemtexts() ) {
+		echo "<p class=\"nodata\">No problem texts available for this contest.</p>\n\n";
+	} elseif ( !$fdata['cstarted'] ) {
+		echo "<p class=\"nodata\">Problem texts will appear here at contest start.</p>\n\n";
+	} else {
+
+		// otherwise, display list
+		$res = $DB->q('SELECT problem.probid,shortname,name,source,color,problemtext_type, COUNT(testcaseid) AS num_samples
+			       FROM problem INNER JOIN contestproblem USING (probid)
+			       LEFT JOIN testcase ON testcase.probid = problem.probid AND testcase.sample = 1
+			       WHERE cid = %i AND allow_submit = 1 GROUP BY problem.probid ORDER BY shortname', $cid);
+
+		if ( $res->count() > 0 ) {
+			echo "<table class=\"list sortable\">\n";
+			echo "<thead>\n";
+			echo "<th scope=\"col\" class=\"sorttable_alpha sorttable_sorted\">ID<span id=\"sorttable_sortfwdind\">&nbsp;▾</span></th>\n";
+			echo "<th scope=\"col\" class=\"sorttable_alpha\">Name</th>\n";
+			echo "<th scope=\"col\" class=\"sorttable_alpha\">Source</th>\n";
+			echo "<th scope=\"col\">View problem text</th>\n";
+			echo "<th scope=\"col\">Download sample data</th>\n";
+			echo "<th scope=\"col\" class=\"sorttable_numericreverse\"># Tried</th>\n";
+			echo "<th scope=\"col\" class=\"sorttable_numericreverse\"># Solved</th>\n";
+			if ($teamid != NULL)
+			{
+				echo "<th scope=\"col\">Solved by you?</th>\n";
+				echo "<th scope=\"col\">Submit solution</th>\n";
+			}
+			echo "</thead>\n";
+			echo "</tbody>\n";
+			while($row = $res->next()) {
+				echo "<tr>\n";
+				echo "<td><span class=\"padding\">" . htmlspecialchars($row['shortname']) . "</span></td>\n";
+				echo "<td><span class=\"padding\">" . htmlspecialchars($row['name']) . "</span></td>\n";
+				echo "<td><span class=\"padding\">" . htmlspecialchars($row['source']) . "</span></td>\n";
+				$link = '<a href="problem.php?id=' . urlencode($row['probid']) . '">';
+				if ( $row['problemtext_type'] !== NULL )
+				{
+					echo "<td>" . $link . "View</a></td>\n";
+				} else {
+					echo "<td><span class=\"padding\">-</span></td>\n";
+				}
+				$link = '<a href="samples.php?id=' . urlencode($row['probid']) . '">';
+				echo "<td>\n";
+				if ( $row['num_samples'] > 0 ) {
+					echo $link . "Download</a>\n";
+				} else {
+					echo "<span class=\"padding\">-</span>\n";
+				}
+				echo "</td>\n";
+
+				echo "<td><span class=\"padding\">\n";
+				$num_tried = $DB->q('VALUE SELECT COUNT(*) FROM scorecache_jury WHERE cid = %i AND probid = %i
+				                     AND submissions > 0',
+				                    $cid, $row['probid']);
+				echo $num_tried;
+				echo "</span></td>\n";
+				echo "<td><span class=\"padding\">\n";
+				$num_correct = $DB->q('VALUE SELECT COUNT(*) FROM scorecache_jury WHERE cid = %i AND probid = %i
+				                       AND is_correct = 1', $cid, $row['probid']);
+				echo $num_correct;
+				echo "</span></td>\n";
+				if ( $teamid !== null ) {
+					echo "<td><span class=\"padding\">\n";
+					$is_correct = $DB->q('MAYBEVALUE SELECT is_correct FROM scorecache_jury WHERE cid = %i
+					                       AND probid = %i AND teamid = %i', $cid, $row['probid'], $teamid);
+					echo ($is_correct ? 'Yes' : 'No');
+					echo "</span></td>\n";
+
+					$link = '<a href="index.php?problem=' . urlencode($row['shortname']) . '">';
+					echo "<td>" . $link . "Submit</a></td>\n";
+				}
+				echo "</tr>\n";
+			}
+			echo "</tbody>\n";
+			echo "</table>\n";
+		}
+	}
+}
+
+/**
  * Returns true if at least one problem in the current contest has a
  * problem statement text in the database.
  */

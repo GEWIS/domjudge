@@ -81,7 +81,7 @@ td {
 .list thead tr { border-bottom-color: black; }
 .list thead tr:hover { background: white; }
 .list tfoot tr:hover { background: white; }
-.list a {
+.list a, .list span.padding {
 	text-decoration: none;
 	color: black;
 	display: block;

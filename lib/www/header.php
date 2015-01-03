@@ -49,6 +49,9 @@ if ( IS_JURY ) {
 	}
 	echo "<script type=\"text/javascript\" src=\"" .
 		"../js/sorttable.js\"></script>\n";
+} elseif ( isset($sorttable) ) {
+	echo "<script type=\"text/javascript\" src=\"" .
+		"../js/sorttable.js\"></script>\n";
 }
 echo "<script type=\"text/javascript\" src=\"../js/domjudge.js\"></script>\n";
 

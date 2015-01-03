@@ -8,11 +8,16 @@
 
 require('init.php');
 
-$title = 'Problem statements';
+$title = $cdata['scoreboardhideproblems'] ? 'Problems' : 'Problem statements';
+$sorttable = true;
 require(LIBWWWDIR . '/header.php');
 
-echo "<h1>Problem statements</h1>\n\n";
+echo "<h1>$title</h1>\n\n";
 
-putProblemTextList();
+if ( $cdata['scoreboardhideproblems'] ) {
+	putProblemTextTable($teamid);
+} else {
+	putProblemTextList();
+}
 
 require(LIBWWWDIR . '/footer.php');
