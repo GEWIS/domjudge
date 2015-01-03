@@ -100,7 +100,11 @@ if ( $fdata['cstarted'] ) {
 				$selected = $probinfo['probid'];
 			}
 		}
-		$probs['Solved:'][''] = 'problem';
+		if ( $cdata['scoreboardhideproblems'] ) {
+			$probs['Solved:'][''] = 'problem';
+		} else {
+			$probs[''] = 'problem';
+		}
 		if ( $cdata['scoreboardhideproblems'] ) {
 			echo addSelectGrouped('probid', $probs, $selected, true);
 		} else {
