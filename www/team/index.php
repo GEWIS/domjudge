@@ -67,11 +67,15 @@ if ( $fdata['cstarted'] ) {
 
 
 		$probs = array();
+		$selected = '';
 		foreach($probdata as $probinfo) {
 			$probs[$probinfo['probid']]=$probinfo['shortname'];
+			if ( isset($_GET['problem']) && $_GET['problem'] == $probinfo['shortname'] ) {
+				$selected = $probinfo['probid'];
+			}
 		}
 		$probs[''] = 'problem';
-		echo addSelect('probid', $probs, '', true);
+		echo addSelect('probid', $probs, $selected, true);
 		foreach($langdata as $langid => $langdata) {
 			$langs[$langid] = $langdata['name'];
 		}
