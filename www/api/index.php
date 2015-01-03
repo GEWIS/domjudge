@@ -184,8 +184,8 @@ function judgings($args)
 	$res = array();
 	while ( $row = $q->next() ) {
 		$data = $DB->q('MAYBETUPLE SELECT s.submittime, j.result FROM judging j
-			        LEFT JOIN submission s ON (s.submitid = j.submitid)
-			        WHERE j.judgingid = %i', $row['judgingid']);
+		                LEFT JOIN submission s USING (submitid)
+		                WHERE j.judgingid = %i', $row['judgingid']);
 		if ($data == NULL) continue;
 
 		// This should be encoded directly in the query
@@ -201,7 +201,7 @@ function judgings($args)
 }
 $doc = 'Get all judgings (including those post-freeze, so currently limited to jury).';
 $args = array('cid' => 'Contest ID. If not provided, get judgings of all active contests',
-	      'result' => 'Search only for judgings with a certain result.',
+              'result' => 'Search only for judgings with a certain result.',
               'fromid' => 'Search from a certain ID',
               'judgingid' => 'Search only for a certain ID',
               'limit' => 'Get only the first N judgings');
@@ -229,9 +229,9 @@ function judgings_POST($args)
 	$contests = array();
 	$problems = array();
 	$languages = array();
-	$restrictions = $DB->q("MAYBEVALUE SELECT restrictions FROM judgehost
-			    INNER JOIN judgehost_restriction USING (restrictionid)
-			    WHERE hostname = %s", $host);
+	$restrictions = $DB->q('MAYBEVALUE SELECT restrictions FROM judgehost
+	                        INNER JOIN judgehost_restriction USING (restrictionid)
+	                        WHERE hostname = %s', $host);
 	if ( $restrictions ) {
 		$restrictions = json_decode($restrictions, true);
 		$contests = $restrictions['contest'];
@@ -287,7 +287,7 @@ function judgings_POST($args)
 	if ( empty($submitid) || $numupd == 0 ) return '';
 
 	$row = $DB->q('TUPLE SELECT s.submitid, s.cid, s.teamid, s.probid, s.langid,
-	               CEILING(time_factor*timelimit) AS maxruntime,
+	               CEILING(time_factor*timelimit) AS maxruntime, p.memlimit,
 	               special_run AS run, special_compare AS compare,
 	               compile_script
 	               FROM submission s
@@ -298,6 +298,9 @@ function judgings_POST($args)
 	$DB->q('UPDATE team SET judging_last_started = %s WHERE teamid = %i',
 	       now(), $row['teamid']);
 
+	if ( empty($row['memlimit']) ) {
+		$row['memlimit'] = dbconfig_get('memory_limit');
+	}
 	if ( empty($row['compare']) ) {
 		$row['compare'] = dbconfig_get('default_compare');
 	}
