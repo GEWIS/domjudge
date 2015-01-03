@@ -31,7 +31,20 @@ if ( isset($_POST['cmd']) ) {
 }
 
 // This doesn't return, call before sending headers
-if ( isset($cmd) && $cmd == 'viewtext' ) putProblemText($id);
+if ( isset($cmd) && $cmd == 'viewtext' ) {
+	$prob = $DB->q("MAYBETUPLE SELECT * FROM problem
+                INNER JOIN contestproblem USING (probid)
+                WHERE cid = %i AND probid = %i", $cid, $id);
+
+	$title = 'Problem description - Problem ' . htmlspecialchars($prob['shortname']) . ': ' . htmlspecialchars($prob['name']);
+	require(LIBWWWDIR . '/header.php');
+
+	echo "<h1>" . $title . "</h1>\n\n";
+
+	putProblemText($id);
+
+	require(LIBWWWDIR . '/footer.php');
+}
 
 require(LIBWWWDIR . '/header.php');
 
