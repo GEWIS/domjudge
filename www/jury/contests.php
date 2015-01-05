@@ -13,7 +13,7 @@ $now = now();
 
 if ( isset($_POST['donow']) ) {
 
-	requireAdmin();
+	requireProblemEditor();
 
 	$docid = $_POST['cid'];
 
@@ -86,7 +86,7 @@ if ( empty($curcids) )  {
 		     ' (' . htmlspecialchars($row['shortname']) . ')' .
 		     "</em>; active from " . printtime($row['activatetime'], '%a %d %b %Y %T %Z') .
 		     "<br /><br />\n";
-		if ( IS_ADMIN ) echo addSubmit("activate now", "donow[activate]");
+		if ( IS_PROBLEM_EDITOR ) echo addSubmit("activate now", "donow[activate]");
 		echo "</form>\n\n";
 	} else {
 		echo "<p class=\"nodata\">No upcoming contest</p>\n";
@@ -138,7 +138,7 @@ if ( empty($curcids) )  {
 			// Show a button for setting the time to now(), only when that
 			// makes sense. E.g. only for end contest when contest has started.
 			// No button for 'activate', because when shown by definition always already active
-			if ( IS_ADMIN && (
+			if ( IS_PROBLEM_EDITOR && (
 					($time == 'start' && !$hasstarted) ||
 					($time == 'end' && $hasstarted && !$hasended &&
 					 (empty($row['freezetime']) || $hasfrozen)) ||
@@ -185,7 +185,7 @@ if( count($res) == 0 ) {
 	echo "<th scope=\"col\" class=\"sorttable_numeric\"># teams</th>";
 	echo "<th scope=\"col\" class=\"sorttable_numeric\"># problems</th>";
 	echo "<th scope=\"col\">name</th>" .
-	     ( IS_ADMIN ? "<th scope=\"col\"></th>" : '' ) .
+	     ( IS_PROBLEM_EDITOR ? "<th scope=\"col\"></th>" : '' ) .
 	     "</tr>\n</thead>\n<tbody>\n";
 
 	$iseven = false;
@@ -214,7 +214,7 @@ if( count($res) == 0 ) {
 		echo "<td>" . $link . htmlspecialchars($row['contestname']) . "</a></td>\n";
 		$iseven = ! $iseven;
 
-		if ( IS_ADMIN ) {
+		if ( IS_PROBLEM_EDITOR ) {
 			echo "<td class=\"editdel\">" .
 				editLink('contest', $row['cid']) . " " .
 				delLink('contest','cid',$row['cid']) . "</td>\n";
@@ -225,7 +225,7 @@ if( count($res) == 0 ) {
 	echo "</tbody>\n</table>\n\n";
 }
 
-if ( IS_ADMIN ) {
+if ( IS_PROBLEM_EDITOR ) {
 	echo "<p>" . addLink('contest') . "</p>\n\n";
 }
 

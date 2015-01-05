@@ -10,7 +10,7 @@
  * under the GNU GPL. See README and COPYING for details.
  */
 require('init.php');
-requireAdmin();
+requireProblemEditor();
 
 $cmd = @$_POST['cmd'];
 if ( $cmd != 'add' && $cmd != 'edit' ) error ("Unknown action.");
@@ -23,6 +23,9 @@ require(LIBDIR .  '/relations.php');
 $t = @$_POST['table'];
 if(!$t)	error ("No table selected.");
 if(!in_array($t, array_keys($KEYS))) error ("Unknown table.");
+if ( !in_array($t, array('problem', 'testcase', 'contest', 'contestproblem')) ) {
+	requireAdmin();
+}
 
 $data          =  $_POST['data'];
 $keydata       = @$_POST['keydata'];

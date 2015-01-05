@@ -14,14 +14,14 @@ if ( !file_exists(LIBDIR . '/relations.php') ) {
 require(LIBDIR . '/relations.php');
 
 $t = @$_REQUEST['table'];
-if ( !in_array($t, array('problem', 'testcase')) ) {
-	requireAdmin();
-}
 $referrer = @$_REQUEST['referrer'];
 if ( ! preg_match('/^[._a-zA-Z0-9?&=-]*$/', $referrer ) ) error ("Invalid characters in referrer.");
 
 if(!$t)	error ("No table selected.");
 if(!in_array($t, array_keys($KEYS))) error ("Unknown table.");
+if ( !in_array($t, array('problem', 'testcase', 'contest', 'contestproblem')) ) {
+	requireAdmin();
+}
 
 $k = array();
 foreach($KEYS[$t] as $key) {

@@ -18,7 +18,7 @@ require(LIBWWWDIR . '/header.php');
 
 if ( !empty($_GET['cmd']) ):
 
-	requireAdmin();
+	requireProblemEditor();
 
 	$cmd = $_GET['cmd'];
 
@@ -287,7 +287,7 @@ echo '<tr><td>Scoreboard unfreeze:</td><td>' .
 	"</td></tr>\n";
 echo "</table>\n\n";
 
-if ( IS_ADMIN ) {
+if ( IS_PROBLEM_EDITOR ) {
 	if ( in_array($data['cid'], $cids) ) {
 		echo "<p>". rejudgeForm('contest', $data['cid']) . "</p>\n\n";
 	}
