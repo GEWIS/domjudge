@@ -336,7 +336,7 @@ else {
 			  htmlspecialchars($row['color']) .
 			  ';"></div></a></td>'
 			: '<td>'. $link . '&nbsp;</a></td>' );
-		if ( IS_ADMIN ) echo "<td>" . delLinkMultiple('contestproblem',array('cid','probid'),array($id, $row['probid']), 'contest.php?id='.$id) ."</td>";
+		if ( IS_PROBLEM_EDITOR ) echo "<td>" . delLinkMultiple('contestproblem',array('cid','probid'),array($id, $row['probid']), 'contest.php?id='.$id) ."</td>";
 
 		$iseven = !$iseven;
 
