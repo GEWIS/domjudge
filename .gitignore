@@ -10,3 +10,5 @@
 /cov-int
 /domjudge-scan.tgz
 *.o
+.DS_Store
+.vagrant
