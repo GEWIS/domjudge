@@ -110,6 +110,9 @@ if ( $fdata['cstarted'] ) {
 		} else {
 			echo addSelect('probid', $probs, $selected, true);
 		}
+		$probs[''] = 'problem';
+		echo addSelect('probid', $probs, '', true);
+		$langs = array();
 		foreach($langdata as $langid => $langdata) {
 			$langs[$langid] = $langdata['name'];
 		}

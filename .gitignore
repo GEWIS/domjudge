@@ -8,7 +8,7 @@
 /bin
 /output
 /cov-int
-/domjudge-scan.tgz
+/domjudge-scan.tar.xz
 *.o
 .vagrant
 .project

@@ -296,7 +296,6 @@ function do_login()
 	global $DB, $ip, $username, $userdata;
 
 	$auth_method = explode(",", AUTH_METHOD);
-
 	$methods = array("IPADDRESS", "PHP_SESSIONS", "EXTERNAL", "PROXY", "LDAP");
 
 	if(count(array_diff($auth_method, $methods)))
@@ -500,9 +499,9 @@ function do_logout()
 		// Also delete the session cookie.
 		if ( ini_get("session.use_cookies") ) {
 			$params = session_get_cookie_params();
-			setcookie(session_name(), '', time() - 42000,
-			          $params["path"], $params["domain"],
-			          $params["secure"], $params["httponly"]);
+			dj_setcookie(session_name(), '', time() - 42000,
+			             $params["path"], $params["domain"],
+			             $params["secure"], $params["httponly"]);
 		}
 
 		// Finally, destroy the session.
