@@ -26,7 +26,16 @@ require_once("common-config.php");
 //   can be useful e.g. for a demo or testing environment. Define
 //   FIXED_USER to the user to be used, e.g.:
 //   define('FIXED_USER', 'domjudge');
-define('AUTH_METHOD', 'PHP_SESSIONS');
+// PROXY
+//   Use the computers IP address to authenticate a team. The IP 
+//   address will be provided through a proxy which has been setup
+//   providing the ability to have a single server while running the
+//   the contest on (multiple) different location(s) while still
+//   providing ease of use to the teams.
+// If multiple methods are desired, they can be put in order of
+// preference, seperated with spaces, e.g.:
+// define('AUTH_METHOD', 'PROXY,PHP_SESSIONS,FIXED')
+define('AUTH_METHOD', 'PHP_SESSIONS,PROXY');
 
 // List of LDAP servers (space separated) to query when using the LDAP
 // authentication method. Secondly, DN to search in, where '&' will be
