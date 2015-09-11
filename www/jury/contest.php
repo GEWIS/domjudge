@@ -178,7 +178,33 @@ $pattern_dateorpos = "($pattern_datetime|\+$pattern_offset)";
 	</tbody>
 </table>
 
+<h3>Languages</h3>
+All disabled languages for this contest are: <br />
+
+<table><thead><tr><th>Disabled</th><th>Language</th></tr></thead></tbody>
 <?php
+$supportedLanguages = $DB->q("SELECT * FROM language WHERE allow_submit = 1");
+
+// Calculate excluded languages
+$excluded = $DB->q("TABLE SELECT langid FROM gewis_language_contest_exclude WHERE cid=%i", $id);
+$excluded = array_map('array_values', $excluded);
+$excluded = call_user_func_array('array_merge', $excluded);
+
+$i = 0;
+while($row = $supportedLanguages->next()){
+	$checked = in_array($row['langid'], $excluded) ? "checked" : "";
+	echo "<tr><td align=center><input type=\"checkbox\" name=\"data[1][mapping][extra][$i][langid]\" value=\"".$row['langid']."\" $checked/></td><td>" . $row['name'] . "</td></tr>";
+	$i++;
+}
+?>
+
+</tbody></table>
+<?php
+
+echo addHidden('data[1][mapping][fk][0]', 'cid') .
+     addHidden('data[1][mapping][table]', 'gewis_language_contest_exclude') . 
+     addHidden('data[1][checkOverride]', 'language');
+
 echo addHidden('data[0][mapping][fk][0]', 'cid') .
      addHidden('data[0][mapping][fk][1]', 'probid') .
      addHidden('data[0][mapping][table]', 'contestproblem');
@@ -188,6 +214,7 @@ echo addHidden('cmd', $cmd) .
 	addSubmit('Save') .
 	addSubmit('Cancel', 'cancel', null, true, 'formnovalidate' . (isset($_GET['referrer']) ? ' formaction="' . htmlspecialchars($_GET['referrer']) . '"':'')) .
 	addEndForm();
+
 
 require(LIBWWWDIR . '/footer.php');
 exit;

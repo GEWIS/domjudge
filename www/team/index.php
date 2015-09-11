@@ -17,7 +17,7 @@ $submitted = @$_GET['submitted'];
 
 $fdata = calcFreezeData($cdata);
 $langdata = $DB->q('KEYTABLE SELECT langid AS ARRAYKEY, name, extensions
-		    FROM language WHERE allow_submit = 1');
+		    FROM language WHERE allow_submit = 1 AND langid NOT IN (SELECT langid from gewis_language_contest_exclude WHERE cid=%i)', $cid);
 
 echo "<script type=\"text/javascript\">\n<!--\n";
 

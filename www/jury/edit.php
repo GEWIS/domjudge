@@ -33,6 +33,11 @@ $unset         = @$_POST['unset'];
 $skipwhenempty = @$_POST['skipwhenempty'];
 $referrer      = @$_POST['referrer'];
 
+//echo "<pre>";
+//var_dump($_POST);
+//exit;
+
+
 if ( empty($data) ) error ("No data.");
 // ensure referrer only contains a single filename, not complete URLs
 if ( ! preg_match('/^[.a-zA-Z0-9?&=_-]*$/', $referrer ) ) {

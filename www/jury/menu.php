@@ -32,6 +32,9 @@
 <?php	if ( checkrole('jury') ) { ?>
 <a href="scoreboard.php" accesskey="b">scoreboard</a>
 <?php	} ?>
+<?php	if ( IS_ADMIN && dbconfig_get('use_image_environment') ) { ?>
+<a href="imageEnvironment.php" accesskey="i">image environment</a>
+<?php	} ?>
 <?php
 if ( checkrole('team') ) {
 	echo "<a target=\"_top\" href=\"../team/\" accesskey=\"t\">→team</a>\n";

@@ -72,7 +72,7 @@ $probid = $prob['probid'];
 /* Determine the language */
 $langid = @$_POST['langid'];
 $lang = $DB->q('MAYBETUPLE SELECT langid, name FROM language
-                WHERE langid = %s AND allow_submit = 1', $langid);
+                WHERE langid = %s AND allow_submit = 1 AND langid NOT IN (SELECT langid from gewis_language_contest_exclude WHERE cid=%i)', $langid, $cid);
 
 if ( ! isset($lang) ) err("Unable to find language '$langid'");
 $langid = $lang['langid'];

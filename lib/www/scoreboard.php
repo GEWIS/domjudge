@@ -420,7 +420,7 @@ function renderScoreBoardTable($sdata, $myteamid = null, $static = FALSE,
 
 				echo '<td class=';
 				// CSS class for correct/incorrect/neutral results
-				if ( $matrix[$team][$prob]['is_correct'] ) {
+				if ( isset($matrix[$team]) && $matrix[$team][$prob]['is_correct'] ) {
 					// The best times for each problem may not have been
 					// calculated (if called from putTeamRow()), so we
 					// have to suppress an undefined index here.

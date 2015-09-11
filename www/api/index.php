@@ -61,7 +61,7 @@ function contest()
 	if (empty($cdatas)) {
 		return null;
 	}
-
+	
 	$cid = $cids[0];
 	$cdata = $cdatas[$cid];
 	return array(
@@ -74,6 +74,7 @@ function contest()
 		'length'    => $cdata['endtime'] - $cdata['starttime'],
 		'unfreeze'  => $cdata['unfreezetime'],
 		'penalty'   => 60*dbconfig_get('penalty_time', 20),
+		'until'	    => $cdata['starttime'] - time(),
 		);
 }
 $doc = "Get information about the current contest: id, shortname, name, start, freeze, unfreeze, length, penalty and end.";
@@ -128,6 +129,14 @@ function user()
 		'username' => $userdata['username'],
 		'roles'    => $userdata['roles'],
 	);
+
+	if(isset($_SERVER['HTTP_X_DOMJUDGE_GREETER']) && isset($_SERVER['HTTP_X_CONTEST_HASH'])){
+		global $DB;
+
+		$meta = $DB->q("MAYBETUPLE SELECT metaValue from gewis_user_meta where userId=%s and metaName in ('loginPassword', 'loginName')  and userId in (select userId from gewis_user_meta where metaName='inContest' and metaValue=%s)", $userdata['userid'], $_SERVER['HTTP_X_CONTEST_HASH']);
+		if(isset($meta['metaValue']))
+			$return['loginPassword'] = $meta['metaValue'];
+	}
 	return $return;
 }
 $doc = "Get information about the currently logged in user. If no user is logged in, will return null for all values.";
@@ -613,6 +622,20 @@ function submissions_POST($args)
 	}
 	$cid = $contests[$contest_shortname]['cid'];
 
+	$langs = [];
+
+	$supportedLanguages = $DB->q("TABLE SELECT langid FROM language WHERE allow_submit = 1 and
+                      langid NOT IN (SELECT langid FROM gewis_language_contest_exclude WHERE cid=%i)", $cid);
+
+	if ( count($supportedLanguages) ){
+		$langs = array_map('array_values', $supportedLanguages);
+		$langs = call_user_func_array('array_merge', $langs);
+	}
+	
+	if ( in_array($args['langid'],$langs) ){
+		error("Problem " . $args['langid'] . " is not supported by this contest");
+	}
+
 	$probid = $DB->q('MAYBEVALUE SELECT probid FROM problem
 	                  INNER JOIN contestproblem USING (probid)
 	                  WHERE shortname = %s AND cid = %i AND allow_submit = 1',
@@ -884,6 +907,7 @@ function categories($args)
 $doc = 'Get a list of all categories.';
 $api->provideFunction('GET', 'categories', $doc, array(), array(), null, true);
 
+	// Decide type
 /**
  * Language information
  */
@@ -891,8 +915,28 @@ function languages()
 {
 	global $DB;
 
+	$contestExclude = array();
+
+	// Check if we can detect a contest
+	$havingContest = isset($args['contest']) || isset($_SERVER['HTTP_X_CONTEST_HASH']);
+	if( $havingContest ) {
+		$contest = isset($args['contests']) ? $args['contest'] : false;
+		if( isset($_SERVER['HTTP_X_CONTEST_HASH']) ) {
+			$inner = $DB->q("MAYBETUPLE SELECT cid FROM contest_meta WHERE metaName='contestHash' AND metaValue=%s", $_SERVER['HTTP_X_CONTEST_HASH']);
+			$contest = isset($inner['cid']) ? $inner['cid'] : false;
+		}
+
+		if($contest !== false){
+			$excludes = $DB->q("SELECT langid FROM gewis_language_contest_exclude WHERE cid=%i", $contest);
+			while($row = $excludes->next()){
+				$contestExclude[] = $row['langid'];
+			}
+		}
+	}
+
 	$q = $DB->q('SELECT langid, name, extensions, allow_judge, time_factor
-	             FROM language WHERE allow_submit = 1');
+	             FROM language WHERE allow_submit = 1 AND langid NOT IN (%As)', $contestExclude);
+	
 	$res = array();
 	while ( $row = $q->next() ) {
 		$res[] = array(
@@ -1009,6 +1053,15 @@ $exArgs = array();
 $roles = array('judgehost');
 $api->provideFunction('PUT', 'judgehosts', $doc, $args, $exArgs, $roles);
 
+function proxiedContestant($args)
+{
+
+	return ["contest" => contest(), "user" => user()];
+}
+
+$api->provideFunction('GET', 'proxiedContestant', '', [], [], null, true);
+
+
 /**
  * Scoreboard (not finished yet)
  */
@@ -1039,6 +1092,13 @@ $args = array('cid' => 'ID of the contest to get the scoreboard for',
               'country' => 'ISO 3166-1 alpha-3 country code to search for.');
 $exArgs = array(array('cid' => 2, 'category' => 1, 'affiliation' => 'UU'), array('cid' => 2, 'country' => 'NLD'));
 $api->provideFunction('GET', 'scoreboard', $doc, $args, $exArgs, null, true);
+
+// API thing
+
+
+
+
+
 
 // Now provide the api, which will handle the request
 $api->provideApi();

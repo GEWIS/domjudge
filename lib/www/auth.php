@@ -17,6 +17,42 @@ $username = NULL;
 $teamdata = NULL;
 $userdata = NULL;
 
+// Returns the in use authentication method
+function detect_method(){
+	$auth_method = explode(",", AUTH_METHOD);
+
+	foreach($auth_method as $method){
+		switch( trim($method) ){
+		case "FIXED":
+			if ( defined('FIXED_USER') && trim(FIXED_USER) != false )
+				return 'FIXED_USER';
+			break;
+		case "EXTERNAL":
+			if ( !empty($_SERVER['REMOTE_USER']) )
+				return "EXTERNAL";
+			break;
+		case "PROXY":
+			if ( isset($_SERVER['HTTP_X_CONTESTANT_IP']) && isset($_SERVER['HTTP_X_CONTEST_HASH']) )
+				return "PROXY";
+			break;
+		case "PHP_SESSIONS":
+		case "LDAP":
+			if ( session_id() == "" ) session_start();
+			if ( isset($_SESSION['username']) )
+				return "PHP_SESSIONS";
+			break;
+		case "IPADDRESS":
+			global $DB, $ip;
+			if ( $DB->q('MAYBETUPLE SELECT * FROM user
+		                 WHERE ip_address = %s AND enabled = 1', $ip) !== null )
+				return "IPADDRESS";
+			break;
+		}
+	}
+
+	return "PHP_SESSIONS";
+}
+
 // Check if current user has given role, or has superset of this role's
 // privileges
 function checkrole($rolename, $check_superset = TRUE) {
@@ -41,9 +77,10 @@ function logged_in()
 
 	if ( !empty($username) && !empty($userdata) && !empty($teamdata) ) return TRUE;
 
-	// Retrieve userdata for given AUTH_METHOD, assume not logged in
+	// Retrieve userdata for each given AUTH_METHOD, assume not logged in
 	// when userdata is empty:
-	switch ( AUTH_METHOD ) {
+	$method = detect_method();
+	switch ( $method ) {
 	case 'FIXED':
 		$username = FIXED_USER;
 		$userdata = $DB->q('MAYBETUPLE SELECT * FROM user
@@ -73,8 +110,13 @@ function logged_in()
 		}
 		break;
 
-	default:
-		error("Unknown authentication method '" . AUTH_METHOD . "' requested.");
+	case 'PROXY':
+		if(!isset($_SERVER['HTTP_X_CONTESTANT_IP']))
+			break;
+		// This has to change slightly
+		$userdata = $DB->q('MAYBETUPLE SELECT * FROM user
+		                    WHERE ip_address = %s AND enabled = 1', $_SERVER['HTTP_X_CONTESTANT_IP']);
+		break;
 	}
 
 	if ( !empty($userdata) ) {
@@ -97,16 +139,19 @@ function logged_in()
 		}
 	}
 
+
 	return $username!==NULL;
 }
 
 // Returns whether the active authentication method has logout functionality.
 function have_logout()
 {
-	switch ( AUTH_METHOD ) {
+	$method = detect_method();
+	switch ( $method ) {
 	case 'FIXED':        return FALSE;
 	case 'EXTERNAL':     return FALSE;
 	case 'IPADDRESS':    return FALSE;
+	case 'PROXY':        return FALSE;
 	case 'PHP_SESSIONS': return TRUE;
 	case 'LDAP':         return TRUE;
 	}
@@ -132,17 +177,10 @@ function show_loginpage()
 {
 	global $ip, $pagename;
 
-	switch ( AUTH_METHOD ) {
-	case 'EXTERNAL':
-		if ( empty($_SERVER['REMOTE_USER'] ) ) {
-			show_failed_login("No authentication information provided by Apache.");
-		} else {
-			show_failed_login("User '" . htmlspecialchars($_SERVER['REMOTE_USER']) . "' not authorized.");
-		}
-	case 'IPADDRESS':
-	case 'PHP_SESSIONS':
-	case 'LDAP':
-		$title = 'Not Authenticated';
+	$auth_method = explode(",", AUTH_METHOD);
+	$allowed_methods = array("PHP_SESSIONS", "LDAP");
+	if( count(array_diff($auth_method, $allowed_methods)) ){
+				$title = 'Not Authenticated';
 		$menu = false;
 
 		include(LIBWWWDIR . '/header.php');
@@ -194,13 +232,18 @@ if (dbconfig_get('allow_registration', false)) { ?>
 <?php
 		putDOMjudgeVersion();
 		include(LIBWWWDIR . '/footer.php');
-		break;
 
-	default:
-		error("Unknown authentication method '" . AUTH_METHOD .
+	} else if ( in_array('EXTERNAL', $auth_method) ){
+		if ( empty($_SERVER['REMOTE_USER'] ) ) {
+			show_failed_login("No authentication information provided by Apache.");
+		} else {
+			show_failed_login("User '" . htmlspecialchars($_SERVER['REMOTE_USER']) . "' not authorized.");
+		}
+	} else {
+		error("Unknown authentication method(s) '" . AUTH_METHOD .
 		      "' requested, or login not supported.");
+		// Default behaviour
 	}
-
 	exit;
 }
 
@@ -252,71 +295,82 @@ function do_login()
 {
 	global $DB, $ip, $username, $userdata;
 
-	switch ( AUTH_METHOD ) {
-	// Generic authentication code for IPADDRESS and PHP_SESSIONS;
-	// some specializations are handled by if-statements.
-	case 'IPADDRESS':
-	case 'PHP_SESSIONS':
-		$user = trim($_POST['login']);
-		$pass = trim($_POST['passwd']);
+	$auth_method = explode(",", AUTH_METHOD);
 
-		$title = 'Authenticate user';
-		$menu = false;
+	$methods = array("IPADDRESS", "PHP_SESSIONS", "EXTERNAL", "PROXY", "LDAP");
 
-		if ( empty($user) || empty($pass) ) {
-			show_failed_login("Please supply a username and password.");
-		}
-		do_login_native($user, $pass);
+	if(count(array_diff($auth_method, $methods)))
+		error("Unknown authentication method(s) '" . implode(',', array_diff($auth_method, $methods)) .
+		      "' requested, or login not supported.");
 
-		if ( AUTH_METHOD=='IPADDRESS' ) {
-			$cnt = $DB->q('RETURNAFFECTED UPDATE user SET ip_address = %s
-				       WHERE username = %s', $ip, $username);
-			if ( $cnt != 1 ) error("cannot set IP for '$username'");
-		}
-		if ( AUTH_METHOD=='PHP_SESSIONS' ) {
+	$valid = false;
+
+	foreach($auth_method as $method){
+		switch ( $method ) {
+		// Generic authentication code for IPADDRESS and PHP_SESSIONS;
+		// some specializations are handled by if-statements.
+		case 'IPADDRESS':
+		case 'PHP_SESSIONS':
+			$user = trim($_POST['login']);
+			$pass = trim($_POST['passwd']);
+
+			$title = 'Authenticate user';
+			$menu = false;
+
+			if ( empty($user) || empty($pass) ) {
+				continue;
+				// show_failed_login("Please supply a username and password.");
+			}
+			do_login_native($user, $pass);
+
+			if ( $method=='IPADDRESS' ) {
+				$cnt = $DB->q('RETURNAFFECTED UPDATE user SET ip_address = %s
+					       WHERE username = %s', $ip, $username);
+				if ( $cnt != 1 ) error("cannot set IP for '$username'");
+			}
+			if ( $method=='PHP_SESSIONS' ) {
+				do_login_native($user, $pass);
+				session_start();
+				$_SESSION['username'] = $username;
+				auditlog('user', $userdata['userid'], 'logged in', $ip);
+			}
+			$valid = true;
+			break 2;
+
+		case 'LDAP':
+			$user = trim($_POST['login']);
+			$pass = trim($_POST['passwd']);
+
+			$title = 'Authenticate user';
+			$menu = false;
+
+			if ( empty($user) || empty($pass) ) {
+				continue;
+				// show_failed_login("Please supply a username and password.");
+			}
+
+			$userdata = $DB->q('MAYBETUPLE SELECT * FROM user
+			                    WHERE username = %s AND enabled = 1', $user);
+
+			if ( !$userdata ||
+			     !ldap_check_credentials($userdata['username'], $pass) ) {
+				sleep(1);
+				show_failed_login("Invalid username or password supplied. " .
+				                  "Please try again or contact a staff member.");
+			}
+
+			$username = $userdata['username'];
+
 			session_start();
 			$_SESSION['username'] = $username;
 			auditlog('user', $userdata['userid'], 'logged in', $ip);
+			$valid = true;
+			break 2;
 		}
-		break;
-
-	case 'LDAP':
-		$user = trim($_POST['login']);
-		$pass = trim($_POST['passwd']);
-
-		$title = 'Authenticate user';
-		$menu = false;
-
-		if ( empty($user) || empty($pass) ) {
-			show_failed_login("Please supply a username and password.");
-		}
-
-		$userdata = $DB->q('MAYBETUPLE SELECT * FROM user
-		                    WHERE username = %s AND enabled = 1', $user);
-
-		if ( !$userdata ||
-		     !ldap_check_credentials($userdata['username'], $pass) ) {
-			sleep(1);
-			show_failed_login("Invalid username or password supplied. " .
-			                  "Please try again or contact a staff member.");
-		}
-
-		$username = $userdata['username'];
-
-		session_start();
-		$_SESSION['username'] = $username;
-		auditlog('user', $userdata['userid'], 'logged in', $ip);
-		break;
-	case 'EXTERNAL':
-		if ( empty($_SERVER['REMOTE_USER']) ) {
-			show_failed_login("No authentication data provided by Apache.");
-		}
-		break;
-
-	default:
-		error("Unknown authentication method '" . AUTH_METHOD .
-		      "' requested, or login not supported.");
 	}
+
+	if( $valid !== true )
+		show_failed_login("Please supply a username and password.");
 
 	// Authentication success. We could just return here, but we do a
 	// redirect to clear the POST data from the browser.
@@ -359,7 +413,8 @@ function do_register() {
 	if ( !dbconfig_get('allow_registration', false) ) {
 		error("Self-Registration is disabled.");
 	}
-	if ( AUTH_METHOD != "PHP_SESSIONS" ) {
+
+	if ( !in_array("PHP_SESSIONS", AUTH_METHOD) ) {
 		error("You can only register if the site is using PHP Sessions for authentication.");
 	}
 
@@ -431,7 +486,8 @@ function do_logout()
 {
 	global $DB, $ip, $username, $userdata;
 
-	switch ( AUTH_METHOD ) {
+	$method = detect_method();
+	switch ( $method ) {
 	case 'PHP_SESSIONS':
 	case 'LDAP':
 
@@ -454,7 +510,7 @@ function do_logout()
 		break;
 
 	default:
-		error("Unknown authentication method '" . AUTH_METHOD .
+		error("Unknown authentication method4 '" . AUTH_METHOD .
 		      "' requested, or logout not supported.");
 	}
 
