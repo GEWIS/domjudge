@@ -33,7 +33,7 @@ if ( isset($_COOKIE['domjudge_cid']) && isset($cdatas[$_COOKIE['domjudge_cid']])
 } elseif ( isset($_SERVER['HTTP_X_CONTEST_HASH']) ){
 	global $DB;
 
-	$cdatas = ($DB->q("KEYTABLE SELECT cid AS ARRAYKEY,contest.* FROM contest where cid in (SELECT cid FROM contest_meta where metaName='contestHash' AND metaValue= %s)", $_SERVER['HTTP_X_CONTEST_HASH']));
+	$cdatas = ($DB->q("KEYTABLE SELECT cid AS ARRAYKEY,contest.* FROM contest where cid in (SELECT cid FROM gewis_contest_meta where metaName='contestHash' AND metaValue= %s)", $_SERVER['HTTP_X_CONTEST_HASH']));
 	$cids = array_keys($cdatas);
 	$cid = $cids[0];
 	$cdata = $cdatas[$cid];

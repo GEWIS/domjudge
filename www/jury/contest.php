@@ -24,7 +24,7 @@ $pattern_dateorpos = "($pattern_datetime|\+$pattern_offset)";
 
 if ( !empty($_GET['cmd']) ):
 
-	requireProblemEditor();
+	requireAdmin();
 
 	$cmd = $_GET['cmd'];
 
@@ -82,6 +82,10 @@ if ( !empty($_GET['cmd']) ):
 <tr><td>Hide time on scoreboard:</td><td>
 <?php echo addRadioButton('data[0][scoreboardhidetime]', ( isset($row['scoreboardhidetime']) && !$row['scoreboardhidetime']), 1)?> <label for="data_0__scoreboardhidetime_1">yes</label>
 <?php echo addRadioButton('data[0][scoreboardhidetime]', (!isset($row['scoreboardhidetime']) ||  $row['scoreboardhidetime']), 0)?> <label for="data_0__scoreboardhidetime_0">no</label></td></tr>
+
+<tr><td>Enable imaging:</td><td>
+<?php echo addRadioButton('data[0][enabledimaging]', ( isset($row['enabledimaging']) && !$row['enabledimaging']), 1)?> <label for="data_0__enabledimaging_1">yes</label>
+<?php echo addRadioButton('data[0][enabledimaging]', (!isset($row['enabledimaging']) ||  $row['enabledimaging']), 0)?> <label for="data_0__enabledimaging_0">no</label></td></tr>
 
 <tr id="teams" <?php if (!isset($row['public']) || $row['public']): ?>style="display: none; "<?php endif; ?>>
 	<td>Teams:</td>
@@ -312,6 +316,7 @@ function clearTeamsOnPublic() {
 }
 </script>
 
+
 <h3>Languages</h3>
 All disabled languages for this contest are: <br />
 
@@ -327,31 +332,28 @@ $excluded = call_user_func_array('array_merge', $excluded);
 $i = 0;
 while($row = $supportedLanguages->next()){
     $checked = in_array($row['langid'], $excluded) ? "checked" : "";
-    echo "<tr><td align=center><input type=\"checkbox\" name=\"data[1][mapping][extra][$i][langid]\" value=\"".$row['langid']."\" $checked/></td><td>" . $row['name'] . "</td></tr>";
+    echo "<tr><td align=center><input type=\"checkbox\" name=\"data[0][mapping][2][items][$i]\" value=\"".$row['langid']."\" $checked/></td><td>" . $row['name'] . "</td></tr>";
     $i++;
 }
 ?>
 
 </tbody></table>
 <?php
-
-echo addHidden('data[0][mapping][2][fk][0]', 'cid') .
-     addHidden('data[0][mapping][2][table]', 'gewis_language_contest_exclude');
-
 echo addHidden('data[0][mapping][0][fk][0]', 'cid') .
      addHidden('data[0][mapping][0][fk][1]', 'probid') .
      addHidden('data[0][mapping][0][table]', 'contestproblem');
 echo addHidden('data[0][mapping][1][fk][0]', 'cid') .
      addHidden('data[0][mapping][1][fk][1]', 'teamid') .
      addHidden('data[0][mapping][1][table]', 'contestteam');
-
+echo addHidden('data[0][mapping][2][fk][0]', 'cid') .
+     addHidden('data[0][mapping][2][fk][1]', 'langid') .
+     addHidden('data[0][mapping][2][table]', 'gewis_language_contest_exclude');
 echo addHidden('cmd', $cmd) .
 	addHidden('table','contest') .
 	addHidden('referrer', @$_GET['referrer'] . ( $cmd == 'edit'?(strstr(@$_GET['referrer'],'?') === FALSE?'?edited=1':'&edited=1'):'')) .
 	addSubmit('Save', null, 'clearTeamsOnPublic()') .
 	addSubmit('Cancel', 'cancel', null, true, 'formnovalidate' . (isset($_GET['referrer']) ? ' formaction="' . htmlspecialchars($_GET['referrer']) . '"':'')) .
 	addEndForm();
-
 
 require(LIBWWWDIR . '/footer.php');
 exit;
@@ -426,12 +428,6 @@ echo '<tr><td>Process balloons:</td><td>' .
 echo '<tr><td>Public:</td><td>' .
      ($data['public'] ? 'yes' : 'no') .
      "</td></tr>\n";
-echo '<tr><td>Hide problems on scoreboard:</td><td>' .
-	($data['scoreboardhideproblems'] ? 'yes' : 'no') .
-	"</td></tr>\n";
-echo '<tr><td>Hide time on scoreboard:</td><td>' .
-	($data['scoreboardhidetime'] ? 'yes' : 'no') .
-	"</td></tr>\n";
 echo '<tr><td>Teams:</td><td>';
 if ( $data['public'] ) {
 	echo "<em>all teams</em>";
@@ -453,7 +449,7 @@ if ( $data['public'] ) {
 echo '</td></tr>';
 echo "</table>\n\n";
 
-if ( IS_PROBLEM_EDITOR ) {
+if ( IS_ADMIN ) {
 	if ( in_array($data['cid'], $cids) ) {
 		echo "<p>". rejudgeForm('contest', $data['cid']) . "</p>\n\n";
 	}
@@ -507,7 +503,7 @@ else {
 			: '<td>'. $link . '&nbsp;</a></td>' );
 		echo "<td>" . $link . ( isset($row['lazy_eval_results']) ?
 		                        printyn($row['lazy_eval_results']) : '-' ) . "</a></td>\n";
-		if ( IS_PROBLEM_EDITOR ) echo "<td>" . delLinkMultiple('contestproblem',array('cid','probid'),array($id, $row['probid']), 'contest.php?id='.$id) ."</td>";
+		if ( IS_ADMIN ) echo "<td>" . delLinkMultiple('contestproblem',array('cid','probid'),array($id, $row['probid']), 'contest.php?id='.$id) ."</td>";
 
 		$iseven = !$iseven;
 

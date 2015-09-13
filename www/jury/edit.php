@@ -14,7 +14,7 @@ require('init.php');
 requireProblemEditor();
 
 $cmd = @$_POST['cmd'];
-if ( $cmd != 'add' && $cmd != 'edit' ) error ("Unknown action.");
+if ( $cmd != 'add' && $cmd != 'edit') error ("Unknown action.");
 
 if ( !file_exists(LIBDIR . '/relations.php') ) {
 	error("'".LIBDIR . "/relations.php' is missing, regenerate with 'make dist'.");
@@ -33,11 +33,7 @@ $keydata       = @$_POST['keydata'];
 $unset         = @$_POST['unset'];
 $skipwhenempty = @$_POST['skipwhenempty'];
 $referrer      = @$_POST['referrer'];
-
-//echo "<pre>";
-//var_dump($_POST);
-//exit;
-
+$ignores       = @$_POST['ignore'];
 
 if ( empty($data) ) error ("No data.");
 // ensure referrer only contains a single filename, not complete URLs
@@ -76,7 +72,7 @@ if ( ! isset($_POST['cancel']) ) {
 		}
 
 		$fn = "check_$t";
-		if ( function_exists($fn) ) {
+		if ( function_exists($fn) && !isset($ignores['tables'][$t]) ) {
 			$CHECKER_ERRORS = array();
 			$itemdata = $fn($itemdata, $keydata[$i]);
 			if ( count($CHECKER_ERRORS) ) {
@@ -109,9 +105,10 @@ if ( ! isset($_POST['cancel']) ) {
 					$prikey[$tablekey] = $keydata[$i][$tablekey];
 			}
 			check_sane_keys($prikey);
-
-			$DB->q("UPDATE $t SET %S WHERE %S", $itemdata, $prikey);
-			auditlog($t, implode(', ', $prikey), 'updated');
+			if ( !empty($itemdata) ) {
+				$DB->q("UPDATE $t SET %S WHERE %S", $itemdata, $prikey);
+				auditlog($t, implode(', ', $prikey), 'updated');
+			}
 		}
 
 		// special case for many-to-many mappings
@@ -202,6 +199,7 @@ function check_manymany_mapping($table, $keys) {
 	}
 
 	global $KEYS;
+
 	foreach($keys as $key) {
 		if (!in_array($key, $KEYS[$table])) {
 			error("Invalid many-to-many mapping. Key \"$key\", table \"$table\"");

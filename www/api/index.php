@@ -1030,7 +1030,7 @@ function languages()
 	if( $havingContest ) {
 		$contest = isset($args['contests']) ? $args['contest'] : false;
 		if( isset($_SERVER['HTTP_X_CONTEST_HASH']) ) {
-			$inner = $DB->q("MAYBETUPLE SELECT cid FROM contest_meta WHERE metaName='contestHash' AND metaValue=%s", $_SERVER['HTTP_X_CONTEST_HASH']);
+			$inner = $DB->q("MAYBETUPLE SELECT cid FROM gewis_contest_meta WHERE metaName='contestHash' AND metaValue=%s", $_SERVER['HTTP_X_CONTEST_HASH']);
 			$contest = isset($inner['cid']) ? $inner['cid'] : false;
 		}
 

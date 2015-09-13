@@ -182,6 +182,45 @@ CREATE TABLE `executable` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Compile, compare, and run script executable bundles';
 
 --
+-- Table structure for table `gewis_image_options`
+--
+
+CREATE TABLE IF NOT EXISTS `gewis_image_options` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `setting_name` varchar(56) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `group_name` varchar(56) COLLATE utf8_unicode_ci DEFAULT '',
+  `type` varchar(56) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `value` varchar(56) COLLATE utf8_unicode_ci NOT NULL DEFAULT '',
+  `image_setting` text COLLATE utf8_unicode_ci NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci AUTO_INCREMENT=51 ;
+
+--
+-- Table structure for table `gewis_language_contest_exclude`
+--
+
+CREATE TABLE IF NOT EXISTS `gewis_language_contest_exclude` (
+  `cid` int(11) unsigned NOT NULL,
+  `langid` varchar(8) CHARACTER SET utf8 NOT NULL DEFAULT '',
+  KEY `gewis_language_contest_exclude_ibfk_1` (`cid`),
+  KEY `gewis_language_contest_exclude_ibfk_2` (`langid`),
+  CONSTRAINT `gewis_language_contest_exclude_ibfk_2` FOREIGN KEY (`langid`) REFERENCES `language` (`langid`) ON DELETE CASCADE,
+  CONSTRAINT `gewis_language_contest_exclude_ibfk_1` FOREIGN KEY (`cid`) REFERENCES `contest` (`cid`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
+-- Table structure for table `gewis_user_meta`
+--
+
+CREATE TABLE IF NOT EXISTS `gewis_user_meta` (
+  `userId` int(11) unsigned NOT NULL,
+  `metaName` varchar(56) COLLATE utf8_unicode_ci NOT NULL,
+  `metaValue` varchar(56) COLLATE utf8_unicode_ci NOT NULL,
+  KEY `gewis_user_meta_ibfk_1` (`userId`),
+  CONSTRAINT `gewis_user_meta_ibfk_1` FOREIGN KEY (`userId`) REFERENCES `user` (`userid`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
 -- Table structure for table `judgehost`
 --
 
