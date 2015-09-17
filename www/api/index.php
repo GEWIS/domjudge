@@ -89,7 +89,7 @@ function contest()
 		'length'    => safe_float($cdata['endtime'] - $cdata['starttime']),
 		'unfreeze'  => safe_float($cdata['unfreezetime']),
 		'penalty'   => safe_int(60*dbconfig_get('penalty_time', 20)),
-		'until'	    => safe_float($cdata['starttime']) - time(),
+		'until'	    => max(0,safe_float($cdata['starttime']) - time()),
 		);
 }
 $doc = "Get information about the current contest: id, shortname, name, start, freeze, unfreeze, length, penalty and end. ";
@@ -144,11 +144,22 @@ function user()
 		'username' => $userdata['username'],
 		'roles'    => $userdata['roles'],
 	);
-
-	if(isset($_SERVER['HTTP_X_DOMJUDGE_GREETER']) && isset($_SERVER['HTTP_X_CONTEST_HASH'])){
+	if(isset($_SERVER['HTTP_X_CONTEST_HASH'])){
 		global $DB;
-
-		$meta = $DB->q("MAYBETUPLE SELECT metaValue from gewis_user_meta where userId=%s and metaName in ('loginPassword', 'loginName')  and userId in (select userId from gewis_user_meta where metaName='inContest' and metaValue=%s)", $userdata['userid'], $_SERVER['HTTP_X_CONTEST_HASH']);
+		$meta = $DB->q("
+MAYBETUPLE SELECT metaValue 
+FROM gewis_user_meta 
+WHERE userId IN (
+      SELECT teamid 
+      FROM contestteam 
+      WHERE cid IN (
+            SELECT cid 
+            FROM gewis_contest_meta 
+            WHERE metaName='contestHash' 
+                  AND metaValue=%i) 
+      AND teamId=%i) 
+      AND metaName='logINPassword'", $_SERVER['HTTP_X_CONTEST_HASH'], $return['teamid']);
+//		$meta = $DB->q("MAYBETUPLE SELECT metaValue from gewis_user_meta where userId=%s and metaName in ('loginPassword', 'loginName')  and userId in (select userId from gewis_user_meta where metaName='inContest' and metaValue=%s)", $userdata['userid'], $_SERVER['HTTP_X_CONTEST_HASH']);
 		if(isset($meta['metaValue']))
 			$return['loginPassword'] = $meta['metaValue'];
 	}
@@ -1183,13 +1194,37 @@ $exArgs = array();
 $roles = array('judgehost');
 $api->provideFunction('PUT', 'judgehosts', $doc, $args, $exArgs, $roles);
 
-function proxiedContestant($args)
-{
-
-	return ["contest" => contest(), "user" => user()];
+function assocToHtml($array, $init = true){
+	if($init)
+		echo "<?xml version='1.0' encoding='UTF-8'?>
+<root>";
+	foreach($array as $k => $v){
+		if(is_int($k))
+			$k = "key$k";
+		echo "<$k>";
+		if(is_array($v)){
+			assocToHtml($v, false);
+		} else {
+			echo $v;
+		}
+		echo "</$k>";
+	}
+	if($init)
+		echo "</root>";
 }
 
-$api->provideFunction('GET', 'proxiedContestant', '', [], [], null, true);
+function proxiedContestant($args)
+{
+	$arr = ["contest" => contest(), "user" => user()];
+	if(isset($args['html'])){
+		header ("Content-Type:text/xml");
+		assocToHtml($arr);
+		exit;
+	}
+	return $arr;
+}
+
+$api->provideFunction('GET', 'proxiedContestant', '', ['html'=>""], [], null, true);
 
 
 /**
@@ -1246,9 +1281,96 @@ $exArgs = array(array('cid' => 2, 'category' => 1, 'affiliation' => 'UU'),
                 array('cid' => 2, 'country' => 'NLD'));
 $api->provideFunction('GET', 'scoreboard', $doc, $args, $exArgs, null, true);
 
-// API thing
+// Proxy satelite things
+
+function proxyRegisterTeam($args) {
+	include('../jury/imageHelper.php');
+
+	$fail = true;
+	if(!isset($_SERVER['HTTP_X_CONTEST_HASH']))
+		exit;
+	global $DB;
+
+	$cid = $DB->q("TUPLE SELECT cid
+                       FROM gewis_contest_meta
+                       WHERE metaName='contestHash'
+                             and metaValue=%s", $_SERVER['HTTP_X_CONTEST_HASH']);
+	
+	if(empty($cid))
+		exit;
+	else 
+		$cid = $cid['cid']*1;
 
 
+	if(isset($args['userid']) && !empty($args['userid'])) {
+		$uid = strtolower($args['userid']);
+
+		if($uid == 'random'){
+			// Select random team
+		}
+
+		// Check if $uid is in $cid
+		$check = $DB->q("TABLE SELECT user.*
+                                 FROM contestteam, user
+                                 WHERE contestteam.teamid=user.teamid
+                                       AND user.userid=%i
+                                       AND cid=%i", $uid, $cid);
+
+		if(count($check) === 1){
+
+			buildIPXE('
+kernel ${base-url}/./imageFile/linux
+initrd ${base-url}/./imageFiles/initrd.gz
+imgargs linux auto=true fb=false url=${base-url}/./api/imagePreseed?userid='.$cid.' netcfg/get_hostname="'.$check[0]['username'].'" tasksel/first=""
+');
+
+			$fail = false;
+
+		}
+		
+
+	}  
+
+	if($fail){
+
+	$hash = $_SERVER['HTTP_X_CONTEST_HASH'];
+
+	$meta = $DB->q("
+SELECT * 
+FROM user 
+WHERE userId IN (
+      SELECT teamid 
+      FROM contestteam 
+      WHERE cid IN (
+            SELECT cid 
+            FROM gewis_contest_meta 
+            WHERE metaName='contestHash' 
+                  AND metaValue=%i) 
+      )", $_SERVER['HTTP_X_CONTEST_HASH']);
+
+	$teamChoices = "";
+
+	while($team = $meta->next()){
+		$teamChoices .= "item ".$team['userid']." ".$team['username'];
+	}
+	echo buildIPXE(
+"menu Please choose the team which sits here $teamname\n" .
+"item random Random team\n" .
+$teamChoices .
+'
+choose team && chain http://redir.tuupke.nl/api/proxyRegisterTeam?userid=${team}
+'
+); 
+}
+	exit;
+}
+
+$doc = 'Register a user over a proxy';
+$args = array(
+	'userid' => 'Userid of the proxied user',
+);
+
+$api->provideFunction('GET', 'proxyRegisterTeam', $doc, $args, array(), null, true);
 
 
 
