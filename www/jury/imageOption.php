@@ -42,15 +42,15 @@ $templateIndex = 0;
 function fillTemplate($info = null) {
 	global $options, $templateIndex, $optionid;
 
-	$index = $templateIndex;	
+	$index = $templateIndex;
 
 	if(is_null($info)) {
 		$index = "{index}";
-		$info = array_fill_keys(array('type', 'value'), array());
+		$info = array_fill_keys(array('type', 'value'), "");
 	}
 
 	echo "<div>" .
-             addSelect("data[0][mapping][0][extra][$index][type]", $options, $info['type']) .
+             addSelect("data[0][mapping][0][items][$index][type]", $options, $info['type']) .
              addInput("data[0][mapping][0][extra][$index][value]", $info['value']) .
 	     " delete</div>";
 
@@ -76,7 +76,7 @@ function addTemplate(templateId, elementId){
 <?php
 
 echo addHidden('data[0][mapping][0][fk][0]', 'optionid') .
-//     addHidden('data[0][mapping][0][fk][1]', 'type') .
+     addHidden('data[0][mapping][0][fk][1]', 'type') .
      addHidden('data[0][mapping][0][table]', 'gewis_image_options_part');
 
 echo addHidden('cmd', 'edit') .
